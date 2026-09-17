@@ -1,0 +1,156 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile, study preferences, daily goals, theme, and notifications",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "email": { "type": "string", "maxLength": 254 },
+        "displayName": { "type": "string", "maxLength": 100 },
+        "photoURL": { "type": "string", "maxLength": 2048 },
+        "avatar": { "type": "string", "maxLength": 100 },
+        "theme": { "type": "string", "enum": ["light", "dark", "calm", "ocean", "sakura", "cyber", "classic"] },
+        "dailyGoalMinutes": { "type": "number" },
+        "streakCount": { "type": "number" },
+        "lastActiveDate": { "type": "string", "maxLength": 30 },
+        "notificationSettings": {
+          "type": "object",
+          "properties": {
+            "timerSound": { "type": "boolean" },
+            "breakSound": { "type": "boolean" },
+            "dailyReminder": { "type": "boolean" },
+            "reminderTime": { "type": "string", "maxLength": 10 },
+            "streakAlerts": { "type": "boolean" }
+          }
+        },
+        "soundSettings": {
+          "type": "object",
+          "properties": {
+            "masterEnabled": { "type": "boolean" },
+            "volume": { "type": "number" },
+            "sessionStartSound": { "type": "boolean" },
+            "breakStartSound": { "type": "boolean" },
+            "completionSound": { "type": "boolean" },
+            "ambientType": { "type": "string", "maxLength": 40 },
+            "ambientVolume": { "type": "number" },
+            "ambientAutoPlayOnFocus": { "type": "boolean" }
+          }
+        },
+        "gamification": {
+          "type": "object",
+          "properties": {
+            "totalXp": { "type": "number" },
+            "level": { "type": "number" },
+            "unlockedBadges": { "type": "object" },
+            "awardedTaskIds": { "type": "array" },
+            "awardedGoalIds": { "type": "array" },
+            "dailyBonusAwardedDates": { "type": "array" },
+            "streakBonusAwardedDates": { "type": "array" },
+            "lastMilestoneCheck": { "type": "string", "maxLength": 50 }
+          }
+        },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "email", "dailyGoalMinutes", "streakCount"]
+    },
+    "Subject": {
+      "title": "Subject",
+      "description": "A study subject or course organized by the student",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 80 },
+        "color": { "type": "string", "maxLength": 20 },
+        "icon": { "type": "string", "maxLength": 40 },
+        "description": { "type": "string", "maxLength": 500 },
+        "targetHoursPerWeek": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "userId", "name", "color"]
+    },
+    "Task": {
+      "title": "Task",
+      "description": "A study task, assignment, or review item",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "subjectId": { "type": "string", "maxLength": 128 },
+        "title": { "type": "string", "maxLength": 160 },
+        "description": { "type": "string", "maxLength": 1000 },
+        "dueDate": { "type": "string", "maxLength": 30 },
+        "priority": { "type": "string", "enum": ["low", "medium", "high"] },
+        "status": { "type": "string", "enum": ["todo", "in_progress", "completed"] },
+        "estimatedMinutes": { "type": "number" },
+        "completedAt": { "type": "string", "maxLength": 40 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "userId", "title", "status", "priority"]
+    },
+    "FocusSession": {
+      "title": "FocusSession",
+      "description": "A recorded study session / pomodoro block",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "subjectId": { "type": "string", "maxLength": 128 },
+        "taskId": { "type": "string", "maxLength": 128 },
+        "durationMinutes": { "type": "number" },
+        "mode": { "type": "string", "enum": ["pomodoro", "short_break", "long_break", "stopwatch", "custom"] },
+        "notes": { "type": "string", "maxLength": 500 },
+        "completedAt": { "type": "string", "maxLength": 40 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "userId", "durationMinutes", "mode"]
+    },
+    "Goal": {
+      "title": "Goal",
+      "description": "A student study goal with measurable target, target date, and progress tracking",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "title": { "type": "string", "maxLength": 160 },
+        "subjectId": { "type": "string", "maxLength": 128 },
+        "targetDate": { "type": "string", "maxLength": 40 },
+        "targetValue": { "type": "number" },
+        "currentValue": { "type": "number" },
+        "unit": { "type": "string", "maxLength": 40 },
+        "status": { "type": "string", "enum": ["active", "completed", "archived"] },
+        "notes": { "type": "string", "maxLength": 500 },
+        "completedAt": { "type": "string", "maxLength": 40 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "userId", "title", "targetValue", "unit", "status"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "User profile with study settings and goals"
+    },
+    "/users/{userId}/subjects/{subjectId}": {
+      "schema": { "$ref": "#/entities/Subject" },
+      "description": "Subjects belonging to a specific student"
+    },
+    "/users/{userId}/tasks/{taskId}": {
+      "schema": { "$ref": "#/entities/Task" },
+      "description": "Tasks belonging to a specific student"
+    },
+    "/users/{userId}/focusSessions/{sessionId}": {
+      "schema": { "$ref": "#/entities/FocusSession" },
+      "description": "Focus timer sessions logged by a specific student"
+    },
+    "/users/{userId}/goals/{goalId}": {
+      "schema": { "$ref": "#/entities/Goal" },
+      "description": "Study goals tracked by a specific student"
+    }
+  }
+}

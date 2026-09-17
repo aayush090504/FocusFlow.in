@@ -1,0 +1,20 @@
+# Focus Flow (focusflow.in) - Search Engine Crawling & Robots Protocol
+User-agent: *
+Allow: /
+Allow: /study-timer
+Allow: /pomodoro-timer
+Allow: /study-planner
+Allow: /focus-timer
+Allow: /privacy
+Allow: /terms
+Allow: /contact
+Allow: /support
+
+# Disallow private user data endpoints, applet internal API routes, and user workspace states
+Disallow: /api/
+Disallow: /admin/
+Disallow: /app/
+
+# Host and Sitemap Declarations
+Host: https://focusflow.in
+Sitemap: https://focusflow.in/sitemap.xml

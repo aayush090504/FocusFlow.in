@@ -1,0 +1,127 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isValidUser(data, userId) {
+      return data.id == userId &&
+        data.email is string && data.email.size() <= 254 &&
+        (!('displayName' in data) || (data.displayName is string && data.displayName.size() <= 100)) &&
+        (!('photoURL' in data) || (data.photoURL is string && data.photoURL.size() <= 2048)) &&
+        (!('avatar' in data) || (data.avatar is string && data.avatar.size() <= 100)) &&
+        (!('theme' in data) || (data.theme in ['light', 'dark', 'calm', 'ocean', 'sakura', 'cyber', 'classic'])) &&
+        (!('dailyGoalMinutes' in data) || (data.dailyGoalMinutes is number && data.dailyGoalMinutes >= 0 && data.dailyGoalMinutes <= 1440)) &&
+        (!('streakCount' in data) || (data.streakCount is number && data.streakCount >= 0)) &&
+        (!('notificationSettings' in data) || data.notificationSettings is map) &&
+        (!('soundSettings' in data) || data.soundSettings is map) &&
+        (!('gamification' in data) || data.gamification is map) &&
+        (!('deleted' in data) || data.deleted is bool) &&
+        (!('lastActiveDate' in data) || (data.lastActiveDate is string && data.lastActiveDate.size() <= 30));
+    }
+
+    function isValidSubject(data, userId) {
+      return data.userId == userId &&
+        data.name is string && data.name.size() > 0 && data.name.size() <= 80 &&
+        data.color is string && data.color.size() <= 30 &&
+        (!('icon' in data) || (data.icon is string && data.icon.size() <= 40)) &&
+        (!('description' in data) || (data.description is string && data.description.size() <= 500)) &&
+        (!('targetHoursPerWeek' in data) || (data.targetHoursPerWeek is number && data.targetHoursPerWeek >= 0 && data.targetHoursPerWeek <= 168));
+    }
+
+    function isValidTask(data, userId) {
+      return data.userId == userId &&
+        data.title is string && data.title.size() > 0 && data.title.size() <= 160 &&
+        data.status in ['todo', 'in_progress', 'completed'] &&
+        data.priority in ['low', 'medium', 'high'] &&
+        (!('subjectId' in data) || (data.subjectId is string && data.subjectId.size() <= 128)) &&
+        (!('description' in data) || (data.description is string && data.description.size() <= 1000)) &&
+        (!('dueDate' in data) || (data.dueDate is string && data.dueDate.size() <= 40)) &&
+        (!('estimatedMinutes' in data) || (data.estimatedMinutes is number && data.estimatedMinutes >= 0 && data.estimatedMinutes <= 10080)) &&
+        (!('completedAt' in data) || (data.completedAt is string && data.completedAt.size() <= 40));
+    }
+
+    function isValidFocusSession(data, userId) {
+      return data.userId == userId &&
+        data.durationMinutes is number && data.durationMinutes >= 0 && data.durationMinutes <= 1440 &&
+        data.mode in ['pomodoro', 'short_break', 'long_break', 'stopwatch', 'custom'] &&
+        (!('subjectId' in data) || (data.subjectId is string && data.subjectId.size() <= 128)) &&
+        (!('taskId' in data) || (data.taskId is string && data.taskId.size() <= 128)) &&
+        (!('notes' in data) || (data.notes is string && data.notes.size() <= 500)) &&
+        (!('completedAt' in data) || (data.completedAt is string && data.completedAt.size() <= 40));
+    }
+
+    function isValidGoal(data, userId) {
+      return data.userId == userId &&
+        data.title is string && data.title.size() > 0 && data.title.size() <= 160 &&
+        data.targetValue is number && data.targetValue > 0 &&
+        data.unit is string && data.unit.size() <= 40 &&
+        data.status in ['active', 'completed', 'archived'] &&
+        (!('currentValue' in data) || data.currentValue is number) &&
+        (!('subjectId' in data) || (data.subjectId is string && data.subjectId.size() <= 128)) &&
+        (!('targetDate' in data) || (data.targetDate is string && data.targetDate.size() <= 40)) &&
+        (!('notes' in data) || (data.notes is string && data.notes.size() <= 500)) &&
+        (!('completedAt' in data) || (data.completedAt is string && data.completedAt.size() <= 40));
+    }
+
+    // Default deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // User collection and subcollections (Strict Attribute-Based Access Control)
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidUser(incoming(), userId);
+      allow update: if isOwner(userId) && isValidUser(incoming(), userId) && incoming().id == existing().id;
+      allow delete: if isOwner(userId);
+
+      match /subjects/{subjectId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(subjectId) && isValidSubject(incoming(), userId);
+        allow update: if isOwner(userId) && isValidId(subjectId) && isValidSubject(incoming(), userId) && incoming().userId == existing().userId;
+        allow delete: if isOwner(userId);
+      }
+
+      match /tasks/{taskId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(taskId) && isValidTask(incoming(), userId);
+        allow update: if isOwner(userId) && isValidId(taskId) && isValidTask(incoming(), userId) && incoming().userId == existing().userId;
+        allow delete: if isOwner(userId);
+      }
+
+      match /focusSessions/{sessionId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(sessionId) && isValidFocusSession(incoming(), userId);
+        allow update: if isOwner(userId) && isValidId(sessionId) && isValidFocusSession(incoming(), userId) && incoming().userId == existing().userId;
+        allow delete: if isOwner(userId);
+      }
+
+      match /goals/{goalId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(goalId) && isValidGoal(incoming(), userId);
+        allow update: if isOwner(userId) && isValidId(goalId) && isValidGoal(incoming(), userId) && incoming().userId == existing().userId;
+        allow delete: if isOwner(userId);
+      }
+    }
+  }
+}
