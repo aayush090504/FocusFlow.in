@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState, useMemo, useCallback } from 'react';
+import React, { createContext, useContext, useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from './AuthContext';
@@ -39,7 +39,7 @@ interface GamificationContextType {
   awardTaskCompletionXp: (taskId: string, priority?: string) => Promise<number>;
   awardGoalCompletionXp: (goalId: string) => Promise<number>;
   checkAndAwardDailyBonus: (todayStudyMinutes: number, dailyGoalMinutes: number) => Promise<void>;
-  checkStreakBonuses: (streakCount: number) => Promise<void>;
+  checkStreakBonuses: (streakCount: number, options?: { silent?: boolean }) => Promise<void>;
   checkAllMilestones: (stats: {
     totalSessions: number;
     totalTasks: number;
@@ -47,17 +47,19 @@ interface GamificationContextType {
     streakCount: number;
     subjectCount: number;
     completedGoalsCount: number;
-  }) => Promise<void>;
+  }, options?: { silent?: boolean }) => Promise<void>;
 }
 
 const DEFAULT_GAMIFICATION: GamificationProfile = {
   totalXp: 0,
   level: 1,
   unlockedBadges: {},
+  notifiedBadgeIds: [],
   awardedSessionIds: [],
   awardedTaskIds: [],
   awardedGoalIds: [],
   awardedStreakMilestones: [],
+  notifiedStreakMilestones: [],
   dailyBonusAwardedDates: [],
   streakBonusAwardedDates: [],
 };
@@ -72,6 +74,16 @@ export const GamificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const [gamification, setGamification] = useState<GamificationProfile>(() => {
     return userProfile?.gamification || DEFAULT_GAMIFICATION;
   });
+
+  const gamificationRef = useRef<GamificationProfile>(gamification);
+  gamificationRef.current = gamification;
+
+  // Track initialization state to prevent race conditions during auth/profile loading
+  const isInitializedRef = useRef<boolean>(false);
+
+  // In-memory sets to guarantee notification deduplication across session
+  const notifiedBadgesRef = useRef<Set<string>>(new Set());
+  const notifiedStreakMilestonesRef = useRef<Set<number>>(new Set());
 
   const [isBadgesModalOpen, setIsBadgesModalOpen] = useState(false);
   const [recentAwards, setRecentAwards] = useState<RecentAwardEvent[]>([]);
@@ -93,17 +105,39 @@ export const GamificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     completedGoalsCount: 0,
   });
 
-  // Sync with userProfile when auth updates
+  // Sync with userProfile when auth updates and populate notification suppression sets
   useEffect(() => {
     if (userProfile?.gamification) {
-      setGamification(prev => ({
+      const profileBadges = userProfile.gamification.unlockedBadges || {};
+      const storedNotified = userProfile.gamification.notifiedBadgeIds || [];
+      const storedMilestones = userProfile.gamification.awardedStreakMilestones || [];
+      const storedNotifiedMilestones = userProfile.gamification.notifiedStreakMilestones || [];
+
+      const mergedNotifiedBadges = Array.from(new Set([...storedNotified, ...Object.keys(profileBadges)]));
+      const mergedNotifiedMilestones = Array.from(new Set([...storedNotifiedMilestones, ...storedMilestones]));
+
+      // Populate suppression sets immediately so already-earned achievements NEVER pop up
+      mergedNotifiedBadges.forEach(id => notifiedBadgesRef.current.add(id));
+      mergedNotifiedMilestones.forEach(ms => notifiedStreakMilestonesRef.current.add(ms));
+
+      const merged: GamificationProfile = {
         ...DEFAULT_GAMIFICATION,
-        ...prev,
         ...userProfile.gamification,
-      }));
+        unlockedBadges: profileBadges,
+        notifiedBadgeIds: mergedNotifiedBadges,
+        awardedStreakMilestones: storedMilestones,
+        notifiedStreakMilestones: mergedNotifiedMilestones,
+      };
+
+      setGamification(merged);
+      gamificationRef.current = merged;
+      isInitializedRef.current = true;
     } else if (userProfile && !userProfile.gamification) {
       setGamification(DEFAULT_GAMIFICATION);
+      gamificationRef.current = DEFAULT_GAMIFICATION;
+      isInitializedRef.current = true;
     }
+
     if (userProfile?.streakCount !== undefined) {
       setCachedStats(prev => ({ ...prev, streakCount: userProfile.streakCount }));
     }
@@ -113,9 +147,10 @@ export const GamificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     return calculateLevelInfo(gamification.totalXp);
   }, [gamification.totalXp]);
 
-  // Persist gamification state to Firestore
+  // Persist gamification state to Firestore and update local references
   const saveGamification = useCallback(async (updated: GamificationProfile) => {
     setGamification(updated);
+    gamificationRef.current = updated;
     if (!user) return;
 
     try {
@@ -133,13 +168,14 @@ export const GamificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const addXp = useCallback(async (amount: number, reason: string): Promise<number> => {
     if (amount <= 0) return 0;
 
-    const oldXp = gamification.totalXp || 0;
+    const currentGamification = gamificationRef.current;
+    const oldXp = currentGamification.totalXp || 0;
     const newXp = oldXp + amount;
     const oldLevel = calculateLevelInfo(oldXp).level;
     const newLevelInfo = calculateLevelInfo(newXp);
 
     const updatedProfile: GamificationProfile = {
-      ...gamification,
+      ...currentGamification,
       totalXp: newXp,
       level: newLevelInfo.level,
     };
@@ -166,7 +202,7 @@ export const GamificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
     await saveGamification(updatedProfile);
     return amount;
-  }, [gamification, playCue, showSuccess, saveGamification]);
+  }, [playCue, showSuccess, saveGamification]);
 
   // Award Focus Session XP: Exactly 1 XP for every 1 minute of completed focus time
   // Deduplicated via session ID to prevent duplicate awards
@@ -175,7 +211,8 @@ export const GamificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       return 0;
     }
 
-    const awardedSessions = gamification.awardedSessionIds || [];
+    const currentGamification = gamificationRef.current;
+    const awardedSessions = currentGamification.awardedSessionIds || [];
     if (awardedSessions.includes(sessionId)) {
       // Already rewarded, ignore duplicate call
       return 0;
@@ -184,13 +221,13 @@ export const GamificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     const xpEarned = calculateFocusSessionXp(durationMinutes);
     if (xpEarned <= 0) return 0;
 
-    const oldXp = gamification.totalXp || 0;
+    const oldXp = currentGamification.totalXp || 0;
     const newXp = oldXp + xpEarned;
     const oldLevel = calculateLevelInfo(oldXp).level;
     const newLevelInfo = calculateLevelInfo(newXp);
 
     const updatedProfile: GamificationProfile = {
-      ...gamification,
+      ...currentGamification,
       awardedSessionIds: [...awardedSessions, sessionId],
       totalXp: newXp,
       level: newLevelInfo.level,
@@ -213,24 +250,25 @@ export const GamificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
 
     return xpEarned;
-  }, [gamification, playCue, saveGamification, showInfo, showSuccess]);
+  }, [playCue, saveGamification, showInfo, showSuccess]);
 
   // Award Task Completion XP (with deduplication)
   const awardTaskCompletionXp = useCallback(async (taskId: string, priority: string = 'medium'): Promise<number> => {
     if (!taskId) return 0;
-    const awarded = gamification.awardedTaskIds || [];
+    const currentGamification = gamificationRef.current;
+    const awarded = currentGamification.awardedTaskIds || [];
     if (awarded.includes(taskId)) {
       // Already rewarded
       return 0;
     }
 
     const xpEarned = calculateTaskXp(priority);
-    const oldXp = gamification.totalXp || 0;
+    const oldXp = currentGamification.totalXp || 0;
     const newXp = oldXp + xpEarned;
     const newLevelInfo = calculateLevelInfo(newXp);
 
     const updatedProfile: GamificationProfile = {
-      ...gamification,
+      ...currentGamification,
       awardedTaskIds: [...awarded, taskId],
       totalXp: newXp,
       level: newLevelInfo.level,
@@ -240,23 +278,24 @@ export const GamificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     showInfo(`Task completed!`, `+${xpEarned} XP Earned!`);
 
     return xpEarned;
-  }, [gamification, saveGamification, showInfo]);
+  }, [saveGamification, showInfo]);
 
   // Award Goal Completion XP (with deduplication)
   const awardGoalCompletionXp = useCallback(async (goalId: string): Promise<number> => {
     if (!goalId) return 0;
-    const awarded = gamification.awardedGoalIds || [];
+    const currentGamification = gamificationRef.current;
+    const awarded = currentGamification.awardedGoalIds || [];
     if (awarded.includes(goalId)) {
       return 0;
     }
 
     const xpEarned = XP_REWARDS.GOAL_COMPLETED;
-    const oldXp = gamification.totalXp || 0;
+    const oldXp = currentGamification.totalXp || 0;
     const newXp = oldXp + xpEarned;
     const newLevelInfo = calculateLevelInfo(newXp);
 
     const updatedProfile: GamificationProfile = {
-      ...gamification,
+      ...currentGamification,
       awardedGoalIds: [...awarded, goalId],
       totalXp: newXp,
       level: newLevelInfo.level,
@@ -271,23 +310,24 @@ export const GamificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     );
 
     return xpEarned;
-  }, [gamification, saveGamification, playCue, showSuccess]);
+  }, [saveGamification, playCue, showSuccess]);
 
   // Daily target bonus (awarded once per day)
   const checkAndAwardDailyBonus = useCallback(async (todayStudyMinutes: number, dailyGoalMinutes: number) => {
-    if (dailyGoalMinutes <= 0 || todayStudyMinutes < dailyGoalMinutes) return;
+    if (dailyGoalMinutes <= 0 || todayStudyMinutes < dailyGoalMinutes || !isInitializedRef.current) return;
 
     const todayStr = new Date().toISOString().split('T')[0];
-    const claimedDates = gamification.dailyBonusAwardedDates || [];
+    const currentGamification = gamificationRef.current;
+    const claimedDates = currentGamification.dailyBonusAwardedDates || [];
     if (claimedDates.includes(todayStr)) return; // Already claimed today
 
     const bonusXp = XP_REWARDS.DAILY_TARGET_REACHED;
-    const oldXp = gamification.totalXp || 0;
+    const oldXp = currentGamification.totalXp || 0;
     const newXp = oldXp + bonusXp;
     const newLevelInfo = calculateLevelInfo(newXp);
 
     const updatedProfile: GamificationProfile = {
-      ...gamification,
+      ...currentGamification,
       dailyBonusAwardedDates: [...claimedDates, todayStr],
       totalXp: newXp,
       level: newLevelInfo.level,
@@ -300,7 +340,7 @@ export const GamificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       `You hit your ${dailyGoalMinutes} minute study target today! Outstanding work! 🔥`,
       `Daily Goal Achieved! +${bonusXp} XP Bonus`
     );
-  }, [gamification, saveGamification, playCue, showSuccess]);
+  }, [saveGamification, playCue, showSuccess]);
 
   // STREAK BONUSES
   // 1 day: +10 XP
@@ -310,11 +350,12 @@ export const GamificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   // 30 days: +250 XP
   // 60 days: +500 XP
   // 100 days: +1,000 XP
-  // Award each milestone bonus only once.
-  const checkStreakBonuses = useCallback(async (streakCount: number) => {
-    if (streakCount <= 0) return;
+  // Award each milestone bonus only once and notify only on genuine new unlock.
+  const checkStreakBonuses = useCallback(async (streakCount: number, options?: { silent?: boolean }) => {
+    if (streakCount <= 0 || !isInitializedRef.current) return;
 
-    const awardedMilestones = gamification.awardedStreakMilestones || [];
+    const currentGamification = gamificationRef.current;
+    const awardedMilestones = currentGamification.awardedStreakMilestones || [];
     let bonusXpTotal = 0;
     const newlyClaimed: number[] = [];
     const bonusMessages: { title: string; xp: number; days: number }[] = [];
@@ -323,65 +364,88 @@ export const GamificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       if (streakCount >= bonus.streakDays && !awardedMilestones.includes(bonus.streakDays)) {
         bonusXpTotal += bonus.xpReward;
         newlyClaimed.push(bonus.streakDays);
-        bonusMessages.push({ title: bonus.title, xp: bonus.xpReward, days: bonus.streakDays });
+
+        const alreadyNotified = notifiedStreakMilestonesRef.current.has(bonus.streakDays);
+        if (!alreadyNotified && !options?.silent) {
+          bonusMessages.push({ title: bonus.title, xp: bonus.xpReward, days: bonus.streakDays });
+        }
+        notifiedStreakMilestonesRef.current.add(bonus.streakDays);
       }
     });
 
-    if (bonusXpTotal > 0 && newlyClaimed.length > 0) {
-      const oldXp = gamification.totalXp || 0;
+    if (newlyClaimed.length > 0) {
+      const oldXp = currentGamification.totalXp || 0;
       const newXp = oldXp + bonusXpTotal;
       const newLevelInfo = calculateLevelInfo(newXp);
 
       const updatedProfile: GamificationProfile = {
-        ...gamification,
+        ...currentGamification,
         awardedStreakMilestones: [...awardedMilestones, ...newlyClaimed],
+        notifiedStreakMilestones: Array.from(notifiedStreakMilestonesRef.current),
         totalXp: newXp,
         level: newLevelInfo.level,
       };
 
       await saveGamification(updatedProfile);
 
-      playCue('session_complete');
-      bonusMessages.forEach((msg) => {
-        showSuccess(
-          `Awesome dedication! Reached ${msg.days}-day streak milestone: ${msg.title}`,
-          `🔥 Streak Bonus: +${msg.xp} XP!`
-        );
+      if (bonusMessages.length > 0) {
+        playCue('session_complete');
+        bonusMessages.forEach((msg) => {
+          showSuccess(
+            `Awesome dedication! Reached ${msg.days}-day streak milestone: ${msg.title}`,
+            `🔥 Streak Bonus: +${msg.xp} XP!`
+          );
 
-        setRecentAwards(prev => [
-          {
-            id: `streak_${msg.days}_${Date.now()}`,
-            type: 'xp',
-            title: `${msg.days}-Day Streak Bonus`,
-            amount: msg.xp,
-            timestamp: new Date().toISOString(),
-          },
-          ...prev.slice(0, 9),
-        ]);
-      });
+          setRecentAwards(prev => [
+            {
+              id: `streak_${msg.days}_${Date.now()}`,
+              type: 'xp',
+              title: `${msg.days}-Day Streak Bonus`,
+              amount: msg.xp,
+              timestamp: new Date().toISOString(),
+            },
+            ...prev.slice(0, 9),
+          ]);
+        });
+      }
     }
-  }, [gamification, saveGamification, playCue, showSuccess]);
+  }, [playCue, saveGamification, showSuccess]);
 
   // Check all badges/milestones & streak bonuses
-  const checkAllMilestones = useCallback(async (stats: {
-    totalSessions: number;
-    totalTasks: number;
-    totalMinutes: number;
-    streakCount: number;
-    subjectCount: number;
-    completedGoalsCount: number;
-  }) => {
+  // Separates achievement progress/earned state from notification popup state
+  const checkAllMilestones = useCallback(async (
+    stats: {
+      totalSessions: number;
+      totalTasks: number;
+      totalMinutes: number;
+      streakCount: number;
+      subjectCount: number;
+      completedGoalsCount: number;
+    },
+    options?: { silent?: boolean }
+  ) => {
     setCachedStats(stats);
 
-    // Also check streak bonuses first
-    await checkStreakBonuses(stats.streakCount);
+    // Guard: Do not run milestone checks until userProfile has finished hydrating
+    if (!isInitializedRef.current) {
+      return;
+    }
 
-    const currentUnlocked = { ...(gamification.unlockedBadges || {}) };
+    const currentGamification = gamificationRef.current;
+    const currentUnlocked = { ...(currentGamification.unlockedBadges || {}) };
     let extraXp = 0;
     const newlyUnlockedBadges: BadgeDefinition[] = [];
+    const badgesToNotify: BadgeDefinition[] = [];
+
+    // Also check streak bonuses
+    await checkStreakBonuses(stats.streakCount, options);
 
     ALL_BADGES.forEach((badge) => {
-      if (currentUnlocked[badge.id]) return; // already unlocked
+      if (currentUnlocked[badge.id]) {
+        // Already unlocked and recorded
+        notifiedBadgesRef.current.add(badge.id);
+        return;
+      }
 
       let isConditionMet = false;
 
@@ -499,14 +563,21 @@ export const GamificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         currentUnlocked[badge.id] = new Date().toISOString();
         extraXp += badge.xpReward;
         newlyUnlockedBadges.push(badge);
+
+        const alreadyNotified = notifiedBadgesRef.current.has(badge.id);
+        if (!alreadyNotified && !options?.silent) {
+          badgesToNotify.push(badge);
+        }
+        notifiedBadgesRef.current.add(badge.id);
       }
     });
 
     if (newlyUnlockedBadges.length > 0) {
-      const newTotalXp = (gamification.totalXp || 0) + extraXp;
+      const newTotalXp = (currentGamification.totalXp || 0) + extraXp;
       const updatedProfile: GamificationProfile = {
-        ...gamification,
+        ...currentGamification,
         unlockedBadges: currentUnlocked,
+        notifiedBadgeIds: Array.from(notifiedBadgesRef.current),
         totalXp: newTotalXp,
         level: calculateLevelInfo(newTotalXp).level,
         lastMilestoneCheck: new Date().toISOString(),
@@ -514,28 +585,32 @@ export const GamificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
       await saveGamification(updatedProfile);
 
-      // Play sound and trigger toasts
-      playCue('session_complete');
-      newlyUnlockedBadges.forEach((b) => {
-        showSuccess(
-          `${b.description} (+${b.xpReward} XP)`,
-          `🏆 Badge Unlocked: ${b.title}`
-        );
+      // Trigger audio & toast notifications ONLY for genuinely new, unnotified badges
+      if (badgesToNotify.length > 0) {
+        // Play notification cue ONCE for the entire batch
+        playCue('session_complete');
 
-        setRecentAwards(prev => [
-          {
-            id: `badge_${b.id}_${Date.now()}`,
-            type: 'badge',
-            title: b.title,
-            badge: b,
-            amount: b.xpReward,
-            timestamp: new Date().toISOString(),
-          },
-          ...prev.slice(0, 9),
-        ]);
-      });
+        badgesToNotify.forEach((b) => {
+          showSuccess(
+            `${b.description} (+${b.xpReward} XP)`,
+            `🏆 Badge Unlocked: ${b.title}`
+          );
+
+          setRecentAwards(prev => [
+            {
+              id: `badge_${b.id}_${Date.now()}`,
+              type: 'badge',
+              title: b.title,
+              badge: b,
+              amount: b.xpReward,
+              timestamp: new Date().toISOString(),
+            },
+            ...prev.slice(0, 9),
+          ]);
+        });
+      }
     }
-  }, [gamification, levelInfo.level, checkStreakBonuses, saveGamification, playCue, showSuccess]);
+  }, [checkStreakBonuses, levelInfo.level, playCue, saveGamification, showSuccess]);
 
   // Compute full display badges with accurate real-time progress
   const allBadges: DisplayBadge[] = useMemo(() => {

@@ -48,7 +48,9 @@ export const FocusTimerModal: React.FC<FocusTimerModalProps> = ({ isOpen, onClos
     playCue, 
     isAmbientPlaying, 
     startAmbient, 
-    stopAmbient 
+    stopAmbient,
+    isLocalMusicPlaying,
+    pauseLocalMusic,
   } = useSound();
 
   const [selectedSubjectId, setSelectedSubjectId] = useState<string>(activeTimer.subjectId || '');
@@ -70,6 +72,9 @@ export const FocusTimerModal: React.FC<FocusTimerModalProps> = ({ isOpen, onClos
       if (isAmbientPlaying) {
         stopAmbient();
       }
+      if (isLocalMusicPlaying) {
+        pauseLocalMusic();
+      }
       // Trigger celebratory confetti
       confetti({
         particleCount: 80,
@@ -80,7 +85,7 @@ export const FocusTimerModal: React.FC<FocusTimerModalProps> = ({ isOpen, onClos
     } else if (activeTimer.secondsRemaining > 0) {
       setHasTriggeredComplete(false);
     }
-  }, [activeTimer.secondsRemaining, hasTriggeredComplete, activeTimer.initialDurationSeconds, showSuccess, playCue, isAmbientPlaying, stopAmbient]);
+  }, [activeTimer.secondsRemaining, hasTriggeredComplete, activeTimer.initialDurationSeconds, showSuccess, playCue, isAmbientPlaying, stopAmbient, isLocalMusicPlaying, pauseLocalMusic]);
 
   if (!isOpen) return null;
 
@@ -237,8 +242,11 @@ export const FocusTimerModal: React.FC<FocusTimerModalProps> = ({ isOpen, onClos
           </div>
 
           {/* Circular SVG Timer */}
-          <div className="relative w-56 h-56 sm:w-64 sm:h-64 flex items-center justify-center mb-6">
-            <svg className="w-full h-full -rotate-90">
+          <div className="relative w-56 h-56 sm:w-64 sm:h-64 aspect-square flex items-center justify-center mb-6 shrink-0">
+            <svg 
+              viewBox="0 0 256 256" 
+              className="w-full h-full aspect-square -rotate-90 origin-center select-none pointer-events-none"
+            >
               {/* Background Ring */}
               <circle
                 cx="128"
@@ -268,20 +276,28 @@ export const FocusTimerModal: React.FC<FocusTimerModalProps> = ({ isOpen, onClos
               />
             </svg>
 
-            {/* Inner Content */}
-            <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-              <span className="text-4xl sm:text-5xl font-extrabold tracking-tight text-slate-900 dark:text-white font-mono">
-                {timeFormatted}
-              </span>
-              <span className="text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 mt-1 capitalize">
-                {activeTimer.mode.replace('_', ' ')}
-              </span>
-              {currentSubject && (
-                <div className="mt-2 flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
-                  <span className="w-2 h-2 rounded-full" style={{ backgroundColor: currentSubject.color }} />
-                  <span>{currentSubject.name}</span>
-                </div>
-              )}
+            {/* Inner Content - Symmetrically balanced */}
+            <div className="absolute inset-0 flex flex-col items-center justify-between text-center p-4 sm:p-5 pointer-events-none">
+              <div className="flex-1 flex items-end justify-center pb-1">
+                <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 capitalize">
+                  {activeTimer.mode.replace('_', ' ')}
+                </span>
+              </div>
+
+              <div className="shrink-0 flex items-center justify-center my-auto">
+                <span className="text-4xl sm:text-5xl font-extrabold tracking-tight text-slate-900 dark:text-white font-mono leading-none tabular-nums select-text pointer-events-auto">
+                  {timeFormatted}
+                </span>
+              </div>
+
+              <div className="flex-1 flex flex-col items-center justify-start pt-1">
+                {currentSubject && (
+                  <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 max-w-[160px] truncate">
+                    <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: currentSubject.color }} />
+                    <span className="truncate">{currentSubject.name}</span>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 

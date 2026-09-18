@@ -2,7 +2,7 @@ import React, { createContext, useContext, useEffect, useState, useCallback, use
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from './AuthContext';
-import { SoundSettings, AmbientSoundType } from '../types';
+import { SoundSettings, AmbientSoundType, LocalMusicTrack } from '../types';
 import { soundEngine } from '../utils/soundEngine';
 
 export interface AmbientSoundOption {
@@ -32,11 +32,15 @@ export const DEFAULT_SOUND_SETTINGS: SoundSettings = {
   ambientType: 'none',
   ambientVolume: 50,
   ambientAutoPlayOnFocus: true,
+  localMusicVolume: 80,
+  localMusicLoop: true,
+  localMusicAutoPlayOnFocus: false,
 };
 
 const STORAGE_KEY = 'focusflow_sound_settings';
 
 interface SoundContextType {
+  // Master & Ambient Settings
   soundSettings: SoundSettings;
   updateSoundSettings: (partial: Partial<SoundSettings>) => Promise<void>;
   toggleMasterSound: () => void;
@@ -49,6 +53,24 @@ interface SoundContextType {
   toggleAmbientPlayback: () => void;
   playCue: (cue: 'session_start' | 'break_start' | 'session_complete' | 'tick') => void;
   unlockAudio: () => void;
+
+  // Local Music Player State & Controls
+  localTrack: LocalMusicTrack | null;
+  isLocalMusicPlaying: boolean;
+  localMusicProgress: number; // in seconds
+  localMusicDuration: number; // in seconds
+  localMusicVolume: number; // 0 to 100
+  isLocalMusicLooping: boolean;
+  localMusicError: string | null;
+  loadLocalTrack: (file: File) => Promise<boolean>;
+  playLocalMusic: () => Promise<void>;
+  pauseLocalMusic: () => void;
+  toggleLocalMusic: () => void;
+  seekLocalMusic: (timeInSeconds: number) => void;
+  setLocalMusicVolume: (volume: number) => void;
+  toggleLocalMusicLoop: () => void;
+  removeLocalTrack: () => void;
+  stopAllAudio: () => void;
 }
 
 const SoundContext = createContext<SoundContextType | undefined>(undefined);
@@ -71,6 +93,19 @@ export const SoundProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const settingsRef = useRef(soundSettings);
   settingsRef.current = soundSettings;
 
+  // 2. Local Music State (strictly in-memory, never uploaded)
+  const [localTrack, setLocalTrack] = useState<LocalMusicTrack | null>(null);
+  const [isLocalMusicPlaying, setIsLocalMusicPlaying] = useState<boolean>(false);
+  const [localMusicProgress, setLocalMusicProgress] = useState<number>(0);
+  const [localMusicDuration, setLocalMusicDuration] = useState<number>(0);
+  const [localMusicVolume, setLocalMusicVolumeState] = useState<number>(() => soundSettings.localMusicVolume ?? 80);
+  const [isLocalMusicLooping, setIsLocalMusicLooping] = useState<boolean>(() => soundSettings.localMusicLoop ?? true);
+  const [localMusicError, setLocalMusicError] = useState<string | null>(null);
+
+  // Audio element reference for local music
+  const localAudioRef = useRef<HTMLAudioElement | null>(null);
+  const activeObjectUrlRef = useRef<string | null>(null);
+
   // Sync profile settings when user logs in or profile loads
   useEffect(() => {
     if (userProfile?.soundSettings) {
@@ -78,6 +113,12 @@ export const SoundProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         ...prev,
         ...userProfile.soundSettings,
       }));
+      if (userProfile.soundSettings.localMusicVolume !== undefined) {
+        setLocalMusicVolumeState(userProfile.soundSettings.localMusicVolume);
+      }
+      if (userProfile.soundSettings.localMusicLoop !== undefined) {
+        setIsLocalMusicLooping(userProfile.soundSettings.localMusicLoop);
+      }
     }
   }, [userProfile?.soundSettings]);
 
@@ -89,6 +130,30 @@ export const SoundProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       soundSettings.ambientVolume
     );
   }, [soundSettings.volume, soundSettings.masterEnabled, soundSettings.ambientVolume]);
+
+  // Update local audio element volume whenever master volume, master mute, or local music volume changes
+  useEffect(() => {
+    if (localAudioRef.current) {
+      const effectiveVol = soundSettings.masterEnabled 
+        ? (localMusicVolume / 100) * (soundSettings.volume / 100)
+        : 0;
+      localAudioRef.current.volume = Math.max(0, Math.min(1, effectiveVol));
+    }
+  }, [soundSettings.masterEnabled, soundSettings.volume, localMusicVolume]);
+
+  // Clean up object URL on unmount to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      if (activeObjectUrlRef.current) {
+        URL.revokeObjectURL(activeObjectUrlRef.current);
+        activeObjectUrlRef.current = null;
+      }
+      if (localAudioRef.current) {
+        localAudioRef.current.pause();
+        localAudioRef.current.src = '';
+      }
+    };
+  }, []);
 
   // Persist settings changes
   const updateSoundSettings = useCallback(async (partial: Partial<SoundSettings>) => {
@@ -172,7 +237,6 @@ export const SoundProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       stopAmbient();
     } else {
       if (settingsRef.current.ambientType === 'none') {
-        // Default to brown noise or rain if none currently selected
         updateSoundSettings({ ambientType: 'brown_noise' });
         startAmbient('brown_noise');
       } else {
@@ -211,6 +275,203 @@ export const SoundProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     soundEngine.unlockAudio();
   }, []);
 
+  // --------------------------------------------------------------------------
+  // Local Music Player Methods
+  // --------------------------------------------------------------------------
+
+  // Clean up any existing audio element and object URL
+  const cleanupExistingAudio = useCallback(() => {
+    if (localAudioRef.current) {
+      localAudioRef.current.pause();
+      localAudioRef.current.onplay = null;
+      localAudioRef.current.onpause = null;
+      localAudioRef.current.ontimeupdate = null;
+      localAudioRef.current.onloadedmetadata = null;
+      localAudioRef.current.onended = null;
+      localAudioRef.current.onerror = null;
+      localAudioRef.current.src = '';
+      localAudioRef.current = null;
+    }
+
+    if (activeObjectUrlRef.current) {
+      URL.revokeObjectURL(activeObjectUrlRef.current);
+      activeObjectUrlRef.current = null;
+    }
+  }, []);
+
+  // Load a local music file
+  const loadLocalTrack = useCallback(async (file: File): Promise<boolean> => {
+    if (!file) return false;
+
+    // Supported formats validation
+    const supportedExtensions = ['.mp3', '.m4a', '.wav', '.ogg', '.mp4', '.aac', '.weba', '.flac'];
+    const fileNameLower = file.name.toLowerCase();
+    const isSupportedExtension = supportedExtensions.some(ext => fileNameLower.endsWith(ext));
+    const isSupportedMime = file.type.startsWith('audio/') || file.type === 'video/mp4' || file.type === 'audio/mp4';
+
+    if (!isSupportedExtension && !isSupportedMime) {
+      setLocalMusicError('Unsupported file type. Please choose an MP3, M4A, WAV, OGG, or MP4 audio file.');
+      return false;
+    }
+
+    // Size limit check (e.g. 200MB safe browser ceiling)
+    if (file.size > 200 * 1024 * 1024) {
+      setLocalMusicError('File size is too large (>200MB). Please select a smaller audio track.');
+      return false;
+    }
+
+    try {
+      cleanupExistingAudio();
+      setLocalMusicError(null);
+
+      // Create browser-local Blob URL (never uploaded to servers)
+      const objectUrl = URL.createObjectURL(file);
+      activeObjectUrlRef.current = objectUrl;
+
+      const audio = new Audio();
+      audio.preload = 'metadata';
+      audio.loop = isLocalMusicLooping;
+
+      const effectiveVol = settingsRef.current.masterEnabled 
+        ? (localMusicVolume / 100) * (settingsRef.current.volume / 100)
+        : 0;
+      audio.volume = Math.max(0, Math.min(1, effectiveVol));
+
+      // Set up event listeners
+      audio.onplay = () => setIsLocalMusicPlaying(true);
+      audio.onpause = () => setIsLocalMusicPlaying(false);
+      audio.ontimeupdate = () => {
+        setLocalMusicProgress(audio.currentTime);
+      };
+      audio.onloadedmetadata = () => {
+        setLocalMusicDuration(audio.duration || 0);
+      };
+      audio.onended = () => {
+        if (!audio.loop) {
+          setIsLocalMusicPlaying(false);
+          setLocalMusicProgress(0);
+        }
+      };
+      audio.onerror = () => {
+        setLocalMusicError('Could not decode or play this audio track. The file may be corrupted.');
+        setIsLocalMusicPlaying(false);
+      };
+
+      audio.src = objectUrl;
+      localAudioRef.current = audio;
+
+      const trackInfo: LocalMusicTrack = {
+        id: `local_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+        name: file.name,
+        size: file.size,
+        type: file.type || 'audio/mpeg',
+        duration: 0,
+        objectUrl: objectUrl,
+        file: file,
+      };
+
+      setLocalTrack(trackInfo);
+      setLocalMusicProgress(0);
+      setLocalMusicDuration(0);
+
+      return true;
+    } catch (err: any) {
+      console.error('Failed to load local track:', err);
+      setLocalMusicError('Failed to load local music file.');
+      return false;
+    }
+  }, [cleanupExistingAudio, isLocalMusicLooping, localMusicVolume]);
+
+  // Play local music
+  const playLocalMusic = useCallback(async () => {
+    if (!localAudioRef.current || !localTrack) return;
+    try {
+      soundEngine.unlockAudio();
+      setLocalMusicError(null);
+      const playPromise = localAudioRef.current.play();
+      if (playPromise !== undefined) {
+        await playPromise;
+      }
+      setIsLocalMusicPlaying(true);
+    } catch (err: any) {
+      console.warn('Audio playback was interrupted or prevented:', err);
+      if (err.name === 'NotAllowedError') {
+        setLocalMusicError('Playback blocked by browser autoplay policy. Click Play to listen.');
+      } else {
+        setLocalMusicError('Unable to play audio. Check device sound output.');
+      }
+      setIsLocalMusicPlaying(false);
+    }
+  }, [localTrack]);
+
+  // Pause local music
+  const pauseLocalMusic = useCallback(() => {
+    if (localAudioRef.current) {
+      localAudioRef.current.pause();
+      setIsLocalMusicPlaying(false);
+    }
+  }, []);
+
+  // Toggle local music
+  const toggleLocalMusic = useCallback(() => {
+    if (isLocalMusicPlaying) {
+      pauseLocalMusic();
+    } else {
+      playLocalMusic();
+    }
+  }, [isLocalMusicPlaying, pauseLocalMusic, playLocalMusic]);
+
+  // Seek to a specific timestamp
+  const seekLocalMusic = useCallback((timeInSeconds: number) => {
+    if (localAudioRef.current) {
+      const clamped = Math.max(0, Math.min(localAudioRef.current.duration || 0, timeInSeconds));
+      localAudioRef.current.currentTime = clamped;
+      setLocalMusicProgress(clamped);
+    }
+  }, []);
+
+  // Set local music volume
+  const setLocalMusicVolume = useCallback((volume: number) => {
+    const clamped = Math.max(0, Math.min(100, Math.round(volume)));
+    setLocalMusicVolumeState(clamped);
+    updateSoundSettings({ localMusicVolume: clamped });
+
+    if (localAudioRef.current) {
+      const effectiveVol = settingsRef.current.masterEnabled 
+        ? (clamped / 100) * (settingsRef.current.volume / 100)
+        : 0;
+      localAudioRef.current.volume = Math.max(0, Math.min(1, effectiveVol));
+    }
+  }, [updateSoundSettings]);
+
+  // Toggle loop mode
+  const toggleLocalMusicLoop = useCallback(() => {
+    setIsLocalMusicLooping(prev => {
+      const nextVal = !prev;
+      if (localAudioRef.current) {
+        localAudioRef.current.loop = nextVal;
+      }
+      updateSoundSettings({ localMusicLoop: nextVal });
+      return nextVal;
+    });
+  }, [updateSoundSettings]);
+
+  // Remove current track and free memory
+  const removeLocalTrack = useCallback(() => {
+    cleanupExistingAudio();
+    setLocalTrack(null);
+    setIsLocalMusicPlaying(false);
+    setLocalMusicProgress(0);
+    setLocalMusicDuration(0);
+    setLocalMusicError(null);
+  }, [cleanupExistingAudio]);
+
+  // Stop both ambient procedural sounds and local music
+  const stopAllAudio = useCallback(() => {
+    stopAmbient();
+    pauseLocalMusic();
+  }, [stopAmbient, pauseLocalMusic]);
+
   return (
     <SoundContext.Provider
       value={{
@@ -226,6 +487,23 @@ export const SoundProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         toggleAmbientPlayback,
         playCue,
         unlockAudio,
+
+        localTrack,
+        isLocalMusicPlaying,
+        localMusicProgress,
+        localMusicDuration,
+        localMusicVolume,
+        isLocalMusicLooping,
+        localMusicError,
+        loadLocalTrack,
+        playLocalMusic,
+        pauseLocalMusic,
+        toggleLocalMusic,
+        seekLocalMusic,
+        setLocalMusicVolume,
+        toggleLocalMusicLoop,
+        removeLocalTrack,
+        stopAllAudio,
       }}
     >
       {children}

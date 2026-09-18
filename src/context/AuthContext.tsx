@@ -117,8 +117,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
 
         const updatedProfile: UserProfile = {
+          ...data,
           id: firebaseUser.uid,
-          email: firebaseUser.email || '',
+          email: firebaseUser.email || data.email || '',
           displayName: customName || firebaseUser.displayName || data.displayName || 'Student',
           photoURL: firebaseUser.photoURL || data.photoURL || '',
           avatar: data.avatar || 'avatar-1',
@@ -126,6 +127,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           dailyGoalMinutes: data.dailyGoalMinutes || 120,
           streakCount: streak,
           notificationSettings: data.notificationSettings || defaultNotifications,
+          soundSettings: data.soundSettings,
+          gamification: data.gamification,
           lastActiveDate: data.lastActiveDate || today,
           createdAt: data.createdAt || new Date().toISOString(),
           updatedAt: new Date().toISOString(),
@@ -146,6 +149,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           streakCount: 1,
           notificationSettings: defaultNotifications,
           lastActiveDate: today,
+          gamification: {
+            totalXp: 0,
+            level: 1,
+            unlockedBadges: {},
+            notifiedBadgeIds: [],
+            awardedSessionIds: [],
+            awardedTaskIds: [],
+            awardedGoalIds: [],
+            awardedStreakMilestones: [],
+            notifiedStreakMilestones: [],
+            dailyBonusAwardedDates: [],
+            streakBonusAwardedDates: [],
+          },
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         };

@@ -926,6 +926,19 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     />
                   </div>
 
+                  <div className="flex items-center justify-between pt-1">
+                    <div className="text-xs font-medium" style={{ color: 'var(--color-text-primary)' }}>
+                      Loop local music tracks by default
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={soundSettings.localMusicLoop ?? true}
+                      onChange={(e) => updateSoundSettings({ localMusicLoop: e.target.checked })}
+                      disabled={!soundSettings.masterEnabled}
+                      className="w-4 h-4 accent-[var(--color-accent-primary)] rounded cursor-pointer disabled:opacity-40"
+                    />
+                  </div>
+
                   {soundSettings.ambientType !== 'none' && soundSettings.masterEnabled && (
                     <div className="pt-2 flex justify-end">
                       <button

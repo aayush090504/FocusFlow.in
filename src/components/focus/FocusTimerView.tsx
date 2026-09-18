@@ -45,7 +45,9 @@ export const FocusTimerView: React.FC = () => {
     playCue, 
     isAmbientPlaying, 
     startAmbient, 
-    stopAmbient 
+    stopAmbient,
+    isLocalMusicPlaying,
+    pauseLocalMusic,
   } = useSound();
 
   const [selectedSubjectId, setSelectedSubjectId] = useState<string>(activeTimer.subjectId || '');
@@ -67,12 +69,15 @@ export const FocusTimerView: React.FC = () => {
       if (isAmbientPlaying) {
         stopAmbient();
       }
+      if (isLocalMusicPlaying) {
+        pauseLocalMusic();
+      }
       confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
       showSuccess('Timer complete! Outstanding focus! 🎉');
     } else if (activeTimer.secondsRemaining > 0) {
       setHasTriggeredComplete(false);
     }
-  }, [activeTimer.secondsRemaining, hasTriggeredComplete, activeTimer.initialDurationSeconds, showSuccess, playCue, isAmbientPlaying, stopAmbient]);
+  }, [activeTimer.secondsRemaining, hasTriggeredComplete, activeTimer.initialDurationSeconds, showSuccess, playCue, isAmbientPlaying, stopAmbient, isLocalMusicPlaying, pauseLocalMusic]);
 
   const totalSeconds = activeTimer.initialDurationSeconds || 25 * 60;
   const remainingSeconds = activeTimer.secondsRemaining;
@@ -265,13 +270,16 @@ export const FocusTimerView: React.FC = () => {
 
           {/* Big Circular Timer Display (Responsive SVG viewport) */}
           <div 
-            className="relative w-64 h-64 sm:w-80 sm:h-80 flex items-center justify-center mb-6 sm:mb-8"
+            className="relative w-64 h-64 sm:w-80 sm:h-80 aspect-square flex items-center justify-center mb-6 sm:mb-8 shrink-0"
             role="timer"
             aria-live="polite"
             aria-atomic="true"
             aria-label={`${minutes} minutes and ${seconds} seconds remaining`}
           >
-            <svg viewBox="0 0 300 300" className="w-full h-full -rotate-90">
+            <svg 
+              viewBox="0 0 300 300" 
+              className="w-full h-full aspect-square -rotate-90 origin-center select-none pointer-events-none"
+            >
               <circle
                 cx="150"
                 cy="150"
@@ -295,32 +303,50 @@ export const FocusTimerView: React.FC = () => {
               />
             </svg>
 
-            <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-4">
-              <span className="text-4xl sm:text-6xl font-extrabold tracking-tight font-mono" style={{ color: 'var(--color-text-primary)' }}>
-                {timeFormatted}
-              </span>
-              <span 
-                className="text-xs font-bold uppercase tracking-wider mt-1 sm:mt-2"
-                style={{ color: 'var(--color-accent-primary)' }}
-              >
-                {activeTimer.mode.replace('_', ' ')}
-              </span>
-
-              {currentSubject && (
+            {/* Inner Content - Symmetrically balanced so the timer numbers remain at the exact mathematical center of the circle */}
+            <div className="absolute inset-0 flex flex-col items-center justify-between text-center p-6 sm:p-8 pointer-events-none">
+              {/* Top slot: Mode indicator */}
+              <div className="flex-1 flex items-end justify-center pb-1">
                 <span 
-                  className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold"
-                  style={{ backgroundColor: `${currentSubject.color}20`, color: currentSubject.color }}
+                  className="text-[11px] sm:text-xs font-bold uppercase tracking-widest px-2.5 py-0.5 rounded-full border"
+                  style={{ 
+                    backgroundColor: 'var(--color-accent-subtle)',
+                    borderColor: 'var(--color-border-default)',
+                    color: 'var(--color-accent-subtle-text)'
+                  }}
                 >
-                  <span className="w-2 h-2 rounded-full" style={{ backgroundColor: currentSubject.color }} />
-                  {currentSubject.name}
+                  {activeTimer.mode.replace('_', ' ')}
                 </span>
-              )}
+              </div>
 
-              {currentTask && (
-                <span className="mt-1 text-xs font-medium max-w-[180px] sm:max-w-[220px] truncate" style={{ color: 'var(--color-text-secondary)' }}>
-                  🎯 {currentTask.title}
+              {/* Exact Center Anchor: Timer Digits */}
+              <div className="shrink-0 flex items-center justify-center my-auto">
+                <span 
+                  className="text-4xl sm:text-6xl font-extrabold tracking-tight font-mono leading-none tabular-nums select-text pointer-events-auto" 
+                  style={{ color: 'var(--color-text-primary)' }}
+                >
+                  {timeFormatted}
                 </span>
-              )}
+              </div>
+
+              {/* Bottom slot: Subject / Task Indicators */}
+              <div className="flex-1 flex flex-col items-center justify-start pt-1.5 space-y-1">
+                {currentSubject && (
+                  <span 
+                    className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] sm:text-xs font-semibold max-w-[180px] sm:max-w-[220px] truncate"
+                    style={{ backgroundColor: `${currentSubject.color}20`, color: currentSubject.color }}
+                  >
+                    <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: currentSubject.color }} />
+                    <span className="truncate">{currentSubject.name}</span>
+                  </span>
+                )}
+
+                {currentTask && (
+                  <span className="text-[11px] sm:text-xs font-medium max-w-[160px] sm:max-w-[200px] truncate" style={{ color: 'var(--color-text-secondary)' }}>
+                    🎯 {currentTask.title}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
 

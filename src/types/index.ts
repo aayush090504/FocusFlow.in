@@ -10,6 +10,16 @@ export type AmbientSoundType =
   | 'binaural_alpha' 
   | 'forest_stream';
 
+export interface LocalMusicTrack {
+  id: string;
+  name: string;
+  size: number;
+  type: string;
+  duration: number;
+  objectUrl: string;
+  file?: File;
+}
+
 export interface SoundSettings {
   masterEnabled: boolean;
   volume: number; // 0 to 100
@@ -19,6 +29,9 @@ export interface SoundSettings {
   ambientType: AmbientSoundType;
   ambientVolume: number; // 0 to 100
   ambientAutoPlayOnFocus: boolean;
+  localMusicVolume?: number; // 0 to 100
+  localMusicLoop?: boolean;
+  localMusicAutoPlayOnFocus?: boolean;
 }
 
 export interface NotificationSettings {

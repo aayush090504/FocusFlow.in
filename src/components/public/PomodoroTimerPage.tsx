@@ -280,8 +280,8 @@ export const PomodoroTimerPage: React.FC<PomodoroTimerPageProps> = ({
 
           {/* Dial and Counter */}
           <div className="flex flex-col items-center justify-center text-center my-4">
-            <div className="relative w-56 h-56 sm:w-64 sm:h-64 flex items-center justify-center">
-              <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+            <div className="relative w-56 h-56 sm:w-64 sm:h-64 aspect-square flex items-center justify-center shrink-0">
+              <svg className="w-full h-full aspect-square transform -rotate-90 origin-center select-none pointer-events-none" viewBox="0 0 100 100">
                 <circle cx="50" cy="50" r="44" stroke="currentColor" strokeWidth="5" className="text-slate-800 fill-none" />
                 <circle 
                   cx="50" 
@@ -297,13 +297,22 @@ export const PomodoroTimerPage: React.FC<PomodoroTimerPageProps> = ({
                   }`} 
                 />
               </svg>
-              <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-4xl sm:text-5xl font-mono font-black text-white tracking-tight">
-                  {formatTime(secondsLeft)}
-                </span>
-                <span className="text-xs font-bold uppercase tracking-wider mt-1 text-slate-400">
-                  {mode === 'work' ? 'Study Sprint' : 'Rest Interval'}
-                </span>
+              <div className="absolute inset-0 flex flex-col items-center justify-between p-4 pointer-events-none">
+                <div className="flex-1 flex items-end justify-center pb-1">
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                    {mode === 'work' ? 'Study Sprint' : 'Rest Interval'}
+                  </span>
+                </div>
+                <div className="shrink-0 flex items-center justify-center my-auto">
+                  <span className="text-4xl sm:text-5xl font-mono font-black text-white tracking-tight leading-none tabular-nums select-text pointer-events-auto">
+                    {formatTime(secondsLeft)}
+                  </span>
+                </div>
+                <div className="flex-1 flex items-start justify-center pt-1">
+                  <span className="text-[11px] text-slate-500 font-medium">
+                    Pomodoro Cycle
+                  </span>
+                </div>
               </div>
             </div>
 

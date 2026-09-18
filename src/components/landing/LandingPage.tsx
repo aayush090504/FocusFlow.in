@@ -302,7 +302,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLogin,
                     </div>
 
                     <div className="relative w-36 h-36 flex items-center justify-center my-2">
-                      <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                      <svg className="w-full h-full aspect-square transform -rotate-90 origin-center select-none pointer-events-none" viewBox="0 0 100 100">
                         <circle cx="50" cy="50" r="42" stroke="currentColor" strokeWidth="6" className="text-slate-800 fill-none" />
                         <circle 
                           cx="50" 
@@ -316,11 +316,18 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLogin,
                           className="text-indigo-500 fill-none transition-all duration-500" 
                         />
                       </svg>
-                      <div className="absolute inset-0 flex flex-col items-center justify-center">
-                        <span className="text-3xl font-mono font-black text-white tracking-tight">
-                          {formatTimer(demoTimerSeconds)}
-                        </span>
-                        <span className="text-[10px] text-slate-400 mt-0.5">Calculus III</span>
+                      <div className="absolute inset-0 flex flex-col items-center justify-between p-2 pointer-events-none">
+                        <div className="flex-1 flex items-end justify-center pb-0.5">
+                          <span className="text-[10px] text-slate-400">Calculus III</span>
+                        </div>
+                        <div className="shrink-0 flex items-center justify-center my-auto">
+                          <span className="text-3xl font-mono font-black text-white tracking-tight leading-none tabular-nums select-text pointer-events-auto">
+                            {formatTimer(demoTimerSeconds)}
+                          </span>
+                        </div>
+                        <div className="flex-1 flex items-start justify-center pt-0.5">
+                          <span className="text-[9px] text-indigo-400 font-medium">Deep Focus</span>
+                        </div>
                       </div>
                     </div>
 

@@ -27,10 +27,12 @@ export interface GamificationProfile {
   totalXp: number;
   level: number;
   unlockedBadges: Record<string, string>; // badgeId -> unlockedAt ISO string
+  notifiedBadgeIds?: string[]; // IDs of badges that have already been notified via popup toast/sound
   awardedSessionIds?: string[]; // IDs of focus sessions that already granted XP
   awardedTaskIds?: string[]; // IDs of tasks that already granted XP
   awardedGoalIds?: string[]; // IDs of goals that already granted XP
   awardedStreakMilestones?: number[]; // Streak day counts that already granted milestone bonuses (1, 3, 7, 14, 30, 60, 100)
+  notifiedStreakMilestones?: number[]; // Streak day counts that have already played notifications/toasts
   dailyBonusAwardedDates?: string[]; // YYYY-MM-DD dates where daily target bonus was granted
   streakBonusAwardedDates?: string[]; // YYYY-MM-DD dates where streak bonus was granted
   lastMilestoneCheck?: string;
