@@ -42,6 +42,24 @@ export interface NotificationSettings {
   streakAlerts: boolean;
 }
 
+export interface PomodoroSettings {
+  focusDurationMinutes: number; // default: 25
+  shortBreakDurationMinutes: number; // default: 5
+  longBreakDurationMinutes: number; // default: 15
+  longBreakInterval: number; // default: 4
+  autoStartBreaks: boolean; // default: true
+  autoStartPomodoros: boolean; // default: true
+}
+
+export const DEFAULT_POMODORO_SETTINGS: PomodoroSettings = {
+  focusDurationMinutes: 25,
+  shortBreakDurationMinutes: 5,
+  longBreakDurationMinutes: 15,
+  longBreakInterval: 4,
+  autoStartBreaks: true,
+  autoStartPomodoros: true,
+};
+
 export interface UserProfile {
   id: string;
   email: string;
@@ -51,6 +69,7 @@ export interface UserProfile {
   theme?: ThemeMode;
   dailyGoalMinutes: number; // e.g. 120 (2 hours)
   streakCount: number;
+  pomodoroSettings?: PomodoroSettings;
   notificationSettings?: NotificationSettings;
   soundSettings?: SoundSettings;
   gamification?: import('./gamification').GamificationProfile;
@@ -62,7 +81,7 @@ export interface UserProfile {
 export * from './gamification';
 
 export type Priority = 'low' | 'medium' | 'high';
-export type TaskStatus = 'todo' | 'in_progress' | 'completed';
+export type TaskStatus = 'todo' | 'in_progress' | 'completed' | 'pending';
 
 export interface Task {
   id: string;
@@ -105,7 +124,7 @@ export interface FocusSession {
   createdAt?: string;
 }
 
-export type GoalStatus = 'active' | 'completed' | 'archived';
+export type GoalStatus = 'active' | 'in_progress' | 'completed' | 'archived';
 
 export interface Goal {
   id: string;

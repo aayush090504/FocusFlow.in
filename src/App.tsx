@@ -24,6 +24,8 @@ import { DashboardView } from './components/dashboard/DashboardView';
 import { TasksView } from './components/tasks/TasksView';
 import { FocusTimerView } from './components/focus/FocusTimerView';
 import { FocusTimerModal } from './components/focus/FocusTimerModal';
+import { ZenModePromptModal } from './components/focus/ZenModePromptModal';
+import { ZenFocusOverlay } from './components/focus/ZenFocusOverlay';
 import { SubjectsView } from './components/subjects/SubjectsView';
 import { GoalsView } from './components/goals/GoalsView';
 import { AnalyticsView } from './components/analytics/AnalyticsView';
@@ -443,6 +445,9 @@ const AuthenticatedWorkspace: React.FC<AuthenticatedWorkspaceProps> = ({
       </main>
 
       {/* Modals */}
+      <ZenModePromptModal />
+      <ZenFocusOverlay />
+
       <FocusTimerModal
         isOpen={isTimerModalOpen}
         onClose={() => setIsTimerModalOpen(false)}

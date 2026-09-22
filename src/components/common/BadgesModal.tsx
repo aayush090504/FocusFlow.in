@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   X, 
   Trophy, 
@@ -75,6 +75,22 @@ export const BadgesModal: React.FC = () => {
     });
   }, [allBadges, selectedCategory, statusFilter, searchQuery]);
 
+  // Prevent dashboard background scrolling while the modal is open
+  useEffect(() => {
+    if (!isBadgesModalOpen) return;
+
+    const originalOverflow = document.body.style.overflow;
+    const originalTouchAction = document.body.style.touchAction;
+
+    document.body.style.overflow = 'hidden';
+    document.body.style.touchAction = 'none';
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      document.body.style.touchAction = originalTouchAction;
+    };
+  }, [isBadgesModalOpen]);
+
   if (!isBadgesModalOpen) return null;
 
   const getRarityBadgeStyle = (rarity: string = 'common') => {
@@ -93,7 +109,7 @@ export const BadgesModal: React.FC = () => {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 md:p-6 bg-black/60 backdrop-blur-xs animate-fade-in">
       <div 
-        className="relative w-full max-w-7xl max-h-[94vh] h-[92vh] flex flex-col rounded-3xl border shadow-2xl overflow-hidden"
+        className="relative w-full max-w-7xl max-h-[96vh] h-[94vh] flex flex-col rounded-3xl border shadow-2xl overflow-hidden"
         style={{
           backgroundColor: 'var(--color-bg-surface)',
           borderColor: 'var(--color-border-default)',
@@ -105,31 +121,31 @@ export const BadgesModal: React.FC = () => {
       >
         {/* Modal Header */}
         <div 
-          className="p-5 sm:p-6 lg:p-7 border-b relative overflow-hidden shrink-0 space-y-4"
+          className="p-3.5 sm:p-4 lg:p-5 border-b relative overflow-hidden shrink-0 space-y-2.5 sm:space-y-3"
           style={{
             borderColor: 'var(--color-border-default)',
             backgroundColor: 'var(--color-bg-subtle)'
           }}
         >
           {/* Top Row: Title, Close button */}
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3.5">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5 sm:gap-3">
               <div 
-                className="w-12 h-12 rounded-2xl flex items-center justify-center shadow-md shrink-0"
+                className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shadow-xs shrink-0"
                 style={{
                   backgroundColor: 'var(--color-accent-primary)',
                   color: 'var(--color-accent-fg)'
                 }}
               >
-                <Trophy className="w-6 h-6" />
+                <Trophy className="w-5 h-5" />
               </div>
               <div>
-                <div className="flex items-center gap-2.5">
-                  <h2 id="badges-modal-title" className="text-xl sm:text-2xl font-black tracking-tight" style={{ color: 'var(--color-text-primary)' }}>
+                <div className="flex items-center gap-2">
+                  <h2 id="badges-modal-title" className="text-base sm:text-xl font-black tracking-tight" style={{ color: 'var(--color-text-primary)' }}>
                     Achievements & Scholar Progress
                   </h2>
                   <span 
-                    className="hidden sm:inline-flex items-center gap-1 text-xs font-bold px-2.5 py-0.5 rounded-full border"
+                    className="hidden md:inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full border"
                     style={{
                       backgroundColor: 'var(--color-accent-subtle)',
                       borderColor: 'var(--color-border-default)',
@@ -140,7 +156,7 @@ export const BadgesModal: React.FC = () => {
                     1 XP / min Focus
                   </span>
                 </div>
-                <p className="text-xs sm:text-sm font-medium mt-0.5" style={{ color: 'var(--color-text-secondary)' }}>
+                <p className="hidden sm:block text-xs font-medium text-slate-500 dark:text-slate-400 mt-0.5" style={{ color: 'var(--color-text-secondary)' }}>
                   Complete focus sessions, conquer tasks, build streaks, and unlock prestigious scholar milestones.
                 </p>
               </div>
@@ -148,7 +164,7 @@ export const BadgesModal: React.FC = () => {
 
             <button
               onClick={() => setIsBadgesModalOpen(false)}
-              className="p-2.5 rounded-2xl border transition-all hover:opacity-80 touch-target shrink-0"
+              className="p-2 sm:p-2.5 rounded-xl sm:rounded-2xl border transition-all hover:opacity-80 touch-target shrink-0"
               style={{
                 backgroundColor: 'var(--color-bg-surface)',
                 borderColor: 'var(--color-border-default)',
@@ -156,22 +172,22 @@ export const BadgesModal: React.FC = () => {
               }}
               aria-label="Close Achievements Modal"
             >
-              <X className="w-5 h-5" />
+              <X className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
           </div>
 
           {/* Level Progress & Metrics Row */}
           <div 
-            className="p-4 rounded-2xl border grid grid-cols-1 md:grid-cols-12 gap-4 items-center"
+            className="p-2.5 sm:p-3 rounded-xl sm:rounded-2xl border grid grid-cols-1 md:grid-cols-12 gap-2.5 sm:gap-3 items-center"
             style={{
               backgroundColor: 'var(--color-bg-surface)',
               borderColor: 'var(--color-border-default)'
             }}
           >
             {/* Level & Rank Badge */}
-            <div className="md:col-span-4 flex items-center gap-3">
+            <div className="md:col-span-4 flex items-center gap-2.5 sm:gap-3">
               <div 
-                className="w-12 h-12 rounded-2xl flex items-center justify-center font-black text-base border shadow-xs shrink-0"
+                className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center font-black text-xs sm:text-sm border shadow-xs shrink-0"
                 style={{
                   backgroundColor: 'var(--color-accent-subtle)',
                   borderColor: 'var(--color-border-default)',
@@ -182,15 +198,15 @@ export const BadgesModal: React.FC = () => {
               </div>
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
-                  <span className="text-base font-extrabold truncate" style={{ color: 'var(--color-text-primary)' }}>
+                  <span className="text-xs sm:text-sm font-extrabold truncate" style={{ color: 'var(--color-text-primary)' }}>
                     {levelInfo.title}
                   </span>
                 </div>
                 <div className="flex items-center gap-2 mt-0.5">
-                  <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-md border" style={{ backgroundColor: 'var(--color-bg-subtle)', borderColor: 'var(--color-border-default)', color: 'var(--color-accent-primary)' }}>
+                  <span className="text-[10px] sm:text-xs font-mono font-bold px-1.5 py-0.5 rounded-md border" style={{ backgroundColor: 'var(--color-bg-subtle)', borderColor: 'var(--color-border-default)', color: 'var(--color-accent-primary)' }}>
                     {levelInfo.totalXp} Total XP
                   </span>
-                  <span className="text-[11px] truncate" style={{ color: 'var(--color-text-secondary)' }}>
+                  <span className="text-[10px] sm:text-[11px] truncate" style={{ color: 'var(--color-text-secondary)' }}>
                     Streak: <strong className="text-amber-500 font-bold">{userStreak}d</strong>
                   </span>
                 </div>
@@ -198,14 +214,14 @@ export const BadgesModal: React.FC = () => {
             </div>
 
             {/* Level progress bar */}
-            <div className="md:col-span-5 space-y-1.5 border-t md:border-t-0 md:border-l pt-3 md:pt-0 md:pl-4" style={{ borderColor: 'var(--color-border-default)' }}>
-              <div className="flex justify-between text-[11px] font-semibold" style={{ color: 'var(--color-text-secondary)' }}>
-                <span>Progress to Level {levelInfo.nextLevel} ({levelInfo.nextTitle})</span>
+            <div className="md:col-span-5 space-y-1 border-t md:border-t-0 md:border-l pt-2 md:pt-0 md:pl-3" style={{ borderColor: 'var(--color-border-default)' }}>
+              <div className="flex justify-between text-[10px] sm:text-[11px] font-semibold" style={{ color: 'var(--color-text-secondary)' }}>
+                <span>Progress to L{levelInfo.nextLevel} ({levelInfo.nextTitle})</span>
                 <span className="font-mono font-bold" style={{ color: 'var(--color-accent-primary)' }}>
-                  {levelInfo.progressPercent}% ({levelInfo.xpInCurrentLevel} / {levelInfo.xpRequiredForCurrentLevel} XP)
+                  {levelInfo.progressPercent}% ({levelInfo.xpInCurrentLevel}/{levelInfo.xpRequiredForCurrentLevel} XP)
                 </span>
               </div>
-              <div className="w-full h-2.5 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--color-border-default)' }}>
+              <div className="w-full h-2 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--color-border-default)' }}>
                 <div 
                   className="h-full rounded-full transition-all duration-500"
                   style={{
@@ -217,23 +233,23 @@ export const BadgesModal: React.FC = () => {
             </div>
 
             {/* Unlocked badges metric count */}
-            <div className="md:col-span-3 flex items-center justify-between md:justify-end gap-4 border-t md:border-t-0 md:border-l pt-3 md:pt-0 md:pl-4" style={{ borderColor: 'var(--color-border-default)' }}>
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-500 border border-amber-500/20 flex items-center justify-center">
-                  <Award className="w-5 h-5" />
+            <div className="md:col-span-3 flex items-center justify-between md:justify-end gap-3 border-t md:border-t-0 md:border-l pt-2 md:pt-0 md:pl-3" style={{ borderColor: 'var(--color-border-default)' }}>
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-amber-500/10 text-amber-500 border border-amber-500/20 flex items-center justify-center shrink-0">
+                  <Award className="w-4 h-4" />
                 </div>
                 <div>
-                  <span className="text-sm font-black block" style={{ color: 'var(--color-text-primary)' }}>
+                  <span className="text-xs sm:text-sm font-black block" style={{ color: 'var(--color-text-primary)' }}>
                     {unlockedBadgesCount} / {totalBadgesCount}
                   </span>
-                  <span className="text-[11px] font-medium" style={{ color: 'var(--color-text-secondary)' }}>Badges Unlocked</span>
+                  <span className="text-[10px] sm:text-[11px] font-medium" style={{ color: 'var(--color-text-secondary)' }}>Badges Unlocked</span>
                 </div>
               </div>
             </div>
           </div>
 
           {/* Search, Status & Category Filters Bar */}
-          <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 pt-1">
+          <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-2 pt-0.5">
             {/* Category Filter Chips */}
             <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar flex-1">
               {categories.map(cat => {
@@ -243,7 +259,7 @@ export const BadgesModal: React.FC = () => {
                   <button
                     key={cat.id}
                     onClick={() => setSelectedCategory(cat.id)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all touch-target shrink-0"
+                    className="flex items-center gap-1.5 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg sm:rounded-xl text-xs font-bold whitespace-nowrap transition-all touch-target shrink-0"
                     style={{
                       backgroundColor: isSelected ? 'var(--color-accent-primary)' : 'var(--color-bg-surface)',
                       color: isSelected ? 'var(--color-accent-fg)' : 'var(--color-text-secondary)',
@@ -262,7 +278,7 @@ export const BadgesModal: React.FC = () => {
             <div className="flex items-center gap-2 shrink-0">
               {/* Search Input */}
               <div 
-                className="flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs"
+                className="flex items-center gap-1.5 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg sm:rounded-xl border text-xs"
                 style={{
                   backgroundColor: 'var(--color-bg-surface)',
                   borderColor: 'var(--color-border-default)'
@@ -274,7 +290,7 @@ export const BadgesModal: React.FC = () => {
                   placeholder="Search badges..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="bg-transparent border-none outline-hidden text-xs w-32 sm:w-40"
+                  className="bg-transparent border-none outline-hidden text-xs w-28 sm:w-36"
                   style={{ color: 'var(--color-text-primary)' }}
                 />
                 {searchQuery && (
@@ -289,7 +305,7 @@ export const BadgesModal: React.FC = () => {
 
               {/* Status Filter */}
               <div 
-                className="flex items-center rounded-xl border p-0.5 text-xs font-bold"
+                className="flex items-center rounded-lg sm:rounded-xl border p-0.5 text-xs font-bold"
                 style={{
                   backgroundColor: 'var(--color-bg-surface)',
                   borderColor: 'var(--color-border-default)'
@@ -299,7 +315,7 @@ export const BadgesModal: React.FC = () => {
                   <button
                     key={status}
                     onClick={() => setStatusFilter(status)}
-                    className="px-2.5 py-1 rounded-lg capitalize transition-all"
+                    className="px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-md sm:rounded-lg capitalize transition-all"
                     style={{
                       backgroundColor: statusFilter === status ? 'var(--color-accent-subtle)' : 'transparent',
                       color: statusFilter === status ? 'var(--color-accent-primary)' : 'var(--color-text-secondary)'
@@ -313,8 +329,8 @@ export const BadgesModal: React.FC = () => {
           </div>
         </div>
 
-        {/* Content View - Expanded full-height scrollable gallery */}
-        <div className="flex-1 p-5 sm:p-6 lg:p-7 overflow-y-auto space-y-6">
+        {/* Content View - Flexible full-height scrollable gallery */}
+        <div className="flex-1 min-h-0 p-3.5 sm:p-5 lg:p-6 overflow-y-auto space-y-4 sm:space-y-6 overscroll-contain">
           {/* Streak Bonuses Showcase (shown on All or Streaks category) */}
           {(selectedCategory === 'all' || selectedCategory === 'streak') && !searchQuery && (
             <div 
@@ -501,7 +517,7 @@ export const BadgesModal: React.FC = () => {
 
         {/* Modal Footer */}
         <div 
-          className="p-4 sm:p-5 border-t flex items-center justify-between text-xs shrink-0"
+          className="p-3 sm:p-3.5 px-4 sm:px-5 border-t flex items-center justify-between text-xs shrink-0"
           style={{
             borderColor: 'var(--color-border-default)',
             backgroundColor: 'var(--color-bg-subtle)',
@@ -509,13 +525,13 @@ export const BadgesModal: React.FC = () => {
           }}
         >
           <div className="flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-amber-500" />
-            <span className="hidden sm:inline">1 XP awarded per minute of focus. All badges and XP are saved permanently.</span>
-            <span className="sm:hidden">1 XP per min focus</span>
+            <Sparkles className="w-4 h-4 text-amber-500 shrink-0" />
+            <span className="hidden sm:inline text-xs">1 XP awarded per minute of focus. All badges and XP are saved permanently.</span>
+            <span className="sm:hidden text-xs">1 XP per min focus</span>
           </div>
           <button
             onClick={() => setIsBadgesModalOpen(false)}
-            className="px-5 py-2.5 rounded-xl text-xs font-bold transition-all shadow-xs touch-target"
+            className="px-4 py-2 sm:px-5 sm:py-2 rounded-xl text-xs font-bold transition-all shadow-xs touch-target"
             style={{
               backgroundColor: 'var(--color-accent-primary)',
               color: 'var(--color-accent-fg)'

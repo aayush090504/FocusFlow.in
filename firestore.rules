@@ -32,6 +32,7 @@ service cloud.firestore {
         (!('theme' in data) || (data.theme in ['light', 'dark', 'calm', 'ocean', 'sakura', 'cyber', 'classic'])) &&
         (!('dailyGoalMinutes' in data) || (data.dailyGoalMinutes is number && data.dailyGoalMinutes >= 0 && data.dailyGoalMinutes <= 1440)) &&
         (!('streakCount' in data) || (data.streakCount is number && data.streakCount >= 0)) &&
+        (!('pomodoroSettings' in data) || data.pomodoroSettings is map) &&
         (!('notificationSettings' in data) || data.notificationSettings is map) &&
         (!('soundSettings' in data) || data.soundSettings is map) &&
         (!('gamification' in data) || data.gamification is map) &&

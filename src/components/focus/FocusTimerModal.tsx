@@ -5,23 +5,19 @@ import {
   RotateCcw, 
   Check, 
   X, 
-  Plus, 
-  Minus, 
   Volume2, 
   VolumeX, 
-  Sparkles, 
   Clock, 
-  BookOpen, 
-  CheckCircle,
-  FileText
+  Shield,
+  FastForward,
+  Coffee,
+  Sparkles
 } from 'lucide-react';
-import confetti from 'canvas-confetti';
 import { useStudy } from '../../context/StudyContext';
 import { useToast } from '../../context/ToastContext';
 import { useSound } from '../../context/SoundContext';
 import { useGamification } from '../../context/GamificationContext';
 import { FocusMode } from '../../types';
-import { AmbientSoundControl } from './AmbientSoundControl';
 
 interface FocusTimerModalProps {
   isOpen: boolean;
@@ -35,13 +31,15 @@ export const FocusTimerModal: React.FC<FocusTimerModalProps> = ({ isOpen, onClos
     pauseTimer, 
     resumeTimer, 
     resetTimer, 
-    adjustTimerTime, 
+    skipBreak,
     finishCurrentTimerSession,
+    setIsZenModeActive,
+    pomodoroSettings,
     subjects,
-    tasks
+    tasks 
   } = useStudy();
+
   const { showSuccess, showError, showInfo } = useToast();
-  const { awardFocusSessionXp } = useGamification();
   const { 
     soundSettings, 
     toggleMasterSound, 
@@ -56,7 +54,6 @@ export const FocusTimerModal: React.FC<FocusTimerModalProps> = ({ isOpen, onClos
   const [selectedSubjectId, setSelectedSubjectId] = useState<string>(activeTimer.subjectId || '');
   const [selectedTaskId, setSelectedTaskId] = useState<string>(activeTimer.taskId || '');
   const [sessionNotes, setSessionNotes] = useState<string>('');
-  const [hasTriggeredComplete, setHasTriggeredComplete] = useState<boolean>(false);
 
   // Sync selected task & subject if activeTimer changes
   useEffect(() => {
@@ -64,44 +61,40 @@ export const FocusTimerModal: React.FC<FocusTimerModalProps> = ({ isOpen, onClos
     if (activeTimer.taskId) setSelectedTaskId(activeTimer.taskId);
   }, [activeTimer.subjectId, activeTimer.taskId]);
 
-  // Handle timer reaching 0
-  useEffect(() => {
-    if (activeTimer.secondsRemaining === 0 && !hasTriggeredComplete && activeTimer.initialDurationSeconds > 0) {
-      setHasTriggeredComplete(true);
-      playCue('session_complete');
-      if (isAmbientPlaying) {
-        stopAmbient();
-      }
-      if (isLocalMusicPlaying) {
-        pauseLocalMusic();
-      }
-      // Trigger celebratory confetti
-      confetti({
-        particleCount: 80,
-        spread: 60,
-        origin: { y: 0.6 }
-      });
-      showSuccess('Timer complete! Awesome work! 🎉');
-    } else if (activeTimer.secondsRemaining > 0) {
-      setHasTriggeredComplete(false);
-    }
-  }, [activeTimer.secondsRemaining, hasTriggeredComplete, activeTimer.initialDurationSeconds, showSuccess, playCue, isAmbientPlaying, stopAmbient, isLocalMusicPlaying, pauseLocalMusic]);
-
   if (!isOpen) return null;
 
-  const totalSeconds = activeTimer.initialDurationSeconds || 25 * 60;
-  const remainingSeconds = activeTimer.secondsRemaining;
-  const minutes = Math.floor(remainingSeconds / 60);
-  const seconds = remainingSeconds % 60;
-  const timeFormatted = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-  
-  // Progress calculations for circular progress bar
-  const progressRatio = totalSeconds > 0 ? (totalSeconds - remainingSeconds) / totalSeconds : 0;
+  const isStopwatch = activeTimer.mode === 'stopwatch';
+  const isBreak = activeTimer.mode === 'short_break' || activeTimer.mode === 'long_break';
+
+  let timeFormatted = '00:00';
+  let progressRatio = 0;
   const radius = 110;
   const circumference = 2 * Math.PI * radius;
-  const strokeDashoffset = circumference - progressRatio * circumference;
+  let strokeDashoffset = circumference;
 
-  const handleSelectMode = (mode: FocusMode, mins: number) => {
+  if (isStopwatch) {
+    const elapsed = activeTimer.stopwatchElapsedSeconds || 0;
+    const hours = Math.floor(elapsed / 3600);
+    const mins = Math.floor((elapsed % 3600) / 60);
+    const secs = elapsed % 60;
+    if (hours > 0) {
+      timeFormatted = `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    } else {
+      timeFormatted = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    }
+    progressRatio = (elapsed % 60) / 60;
+    strokeDashoffset = circumference - progressRatio * circumference;
+  } else {
+    const totalSeconds = activeTimer.initialDurationSeconds || 25 * 60;
+    const remainingSeconds = activeTimer.secondsRemaining;
+    const minutes = Math.floor(remainingSeconds / 60);
+    const seconds = remainingSeconds % 60;
+    timeFormatted = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    progressRatio = totalSeconds > 0 ? (totalSeconds - remainingSeconds) / totalSeconds : 0;
+    strokeDashoffset = circumference - progressRatio * circumference;
+  }
+
+  const handleSelectMode = (mode: FocusMode, mins?: number) => {
     if (mode === 'short_break' || mode === 'long_break') {
       playCue('break_start');
     } else {
@@ -114,7 +107,7 @@ export const FocusTimerModal: React.FC<FocusTimerModalProps> = ({ isOpen, onClos
   };
 
   const handleStartOrResume = () => {
-    if (activeTimer.mode === 'short_break' || activeTimer.mode === 'long_break') {
+    if (isBreak) {
       playCue('break_start');
     } else {
       playCue('session_start');
@@ -122,8 +115,8 @@ export const FocusTimerModal: React.FC<FocusTimerModalProps> = ({ isOpen, onClos
         startAmbient();
       }
     }
-    if (activeTimer.secondsRemaining === totalSeconds) {
-      startTimer(activeTimer.mode, Math.max(1, Math.round(totalSeconds / 60)), selectedSubjectId, selectedTaskId);
+    if (!isStopwatch && activeTimer.secondsRemaining === activeTimer.initialDurationSeconds) {
+      startTimer(activeTimer.mode, Math.max(1, Math.round(activeTimer.initialDurationSeconds / 60)), selectedSubjectId, selectedTaskId);
     } else {
       resumeTimer();
     }
@@ -147,9 +140,9 @@ export const FocusTimerModal: React.FC<FocusTimerModalProps> = ({ isOpen, onClos
     try {
       const result = await finishCurrentTimerSession(sessionNotes);
       if (result.sessionId && result.durationMinutes >= 1) {
-        await awardFocusSessionXp(result.sessionId, result.durationMinutes);
-      } else if (result.durationMinutes < 1) {
-        showInfo('Focus session ended before 1 full minute. 1 XP is awarded per completed minute.', 'Focus Session Ended');
+        showSuccess(`Saved ${result.durationMinutes} focus minutes (+${result.durationMinutes} XP)! 🎉`, 'Session Saved');
+      } else if (result.durationMinutes < 1 && !isBreak) {
+        showInfo('Focus session ended under 1 full minute. 1 XP is earned per completed minute.', 'Focus Session Ended');
       }
       setSessionNotes('');
       if (isAmbientPlaying) {
@@ -179,8 +172,23 @@ export const FocusTimerModal: React.FC<FocusTimerModalProps> = ({ isOpen, onClos
           <div className="flex items-center gap-2">
             <button
               type="button"
+              onClick={() => {
+                onClose();
+                setIsZenModeActive(true);
+                if (document.documentElement && document.documentElement.requestFullscreen && !document.fullscreenElement) {
+                  document.documentElement.requestFullscreen().catch(() => {});
+                }
+              }}
+              className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 transition-all cursor-pointer"
+              title="Enter Zen Fullscreen Focus Mode"
+            >
+              <Shield className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Zen Mode</span>
+            </button>
+            <button
+              type="button"
               onClick={toggleMasterSound}
-              className="p-1.5 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white hover:bg-slate-200/50 dark:hover:bg-slate-700/50 transition-colors"
+              className="p-1.5 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white hover:bg-slate-200/50 dark:hover:bg-slate-700/50 transition-colors cursor-pointer"
               title={soundSettings.masterEnabled ? `Sound Enabled (${soundSettings.volume}%)` : 'Sound Muted'}
               aria-label={soundSettings.masterEnabled ? 'Mute audio' : 'Unmute audio'}
             >
@@ -188,7 +196,7 @@ export const FocusTimerModal: React.FC<FocusTimerModalProps> = ({ isOpen, onClos
             </button>
             <button
               onClick={onClose}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-200/50 dark:hover:bg-slate-700/50 transition-colors"
+              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-200/50 dark:hover:bg-slate-700/50 transition-colors cursor-pointer"
               aria-label="Close Focus Timer"
             >
               <X className="w-5 h-5" />
@@ -198,48 +206,65 @@ export const FocusTimerModal: React.FC<FocusTimerModalProps> = ({ isOpen, onClos
 
         <div className="p-6 sm:p-8 flex flex-col items-center overflow-y-auto">
           {/* Preset Mode Buttons */}
-          <div className="flex p-1 bg-slate-100 dark:bg-slate-800 rounded-xl mb-6 w-full max-w-md border border-slate-200/60 dark:border-slate-700">
+          <div className="flex p-1 bg-slate-100 dark:bg-slate-800 rounded-xl mb-4 w-full max-w-md border border-slate-200/60 dark:border-slate-700 overflow-x-auto">
             <button
-              onClick={() => handleSelectMode('pomodoro', 25)}
-              className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${
+              onClick={() => handleSelectMode('pomodoro', pomodoroSettings.focusDurationMinutes)}
+              className={`flex-1 py-1.5 px-2 text-xs font-bold rounded-lg transition-all cursor-pointer whitespace-nowrap ${
                 activeTimer.mode === 'pomodoro'
                   ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-xs'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
-              Pomodoro (25m)
+              🍅 Pomodoro ({pomodoroSettings.focusDurationMinutes}m)
             </button>
             <button
-              onClick={() => handleSelectMode('short_break', 5)}
-              className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${
+              onClick={() => handleSelectMode('short_break', pomodoroSettings.shortBreakDurationMinutes)}
+              className={`flex-1 py-1.5 px-2 text-xs font-bold rounded-lg transition-all cursor-pointer whitespace-nowrap ${
                 activeTimer.mode === 'short_break'
                   ? 'bg-white dark:bg-slate-700 text-emerald-600 dark:text-emerald-400 shadow-xs'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
-              Short (5m)
+              ☕ Break ({pomodoroSettings.shortBreakDurationMinutes}m)
             </button>
             <button
-              onClick={() => handleSelectMode('long_break', 15)}
-              className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${
+              onClick={() => handleSelectMode('long_break', pomodoroSettings.longBreakDurationMinutes)}
+              className={`flex-1 py-1.5 px-2 text-xs font-bold rounded-lg transition-all cursor-pointer whitespace-nowrap ${
                 activeTimer.mode === 'long_break'
                   ? 'bg-white dark:bg-slate-700 text-teal-600 dark:text-teal-400 shadow-xs'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
-              Long (15m)
+              🌴 Long ({pomodoroSettings.longBreakDurationMinutes}m)
             </button>
             <button
-              onClick={() => handleSelectMode('custom', 50)}
-              className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${
-                activeTimer.mode === 'custom' && totalSeconds === 50 * 60
-                  ? 'bg-white dark:bg-slate-700 text-violet-600 dark:text-violet-400 shadow-xs'
+              onClick={() => handleSelectMode('stopwatch', 0)}
+              className={`flex-1 py-1.5 px-2 text-xs font-bold rounded-lg transition-all cursor-pointer whitespace-nowrap ${
+                activeTimer.mode === 'stopwatch'
+                  ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-xs'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
-              Deep (50m)
+              ⏱️ Stopwatch
             </button>
           </div>
+
+          {/* Break Mode notice if active */}
+          {isBreak && (
+            <div className="w-full mb-4 p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-between text-xs text-emerald-700 dark:text-emerald-300">
+              <div className="flex items-center gap-1.5">
+                <Coffee className="w-4 h-4" />
+                <span>Break Time (0 XP)</span>
+              </div>
+              <button
+                onClick={skipBreak}
+                className="flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-600 text-white font-bold text-[11px] cursor-pointer"
+              >
+                <FastForward className="w-3 h-3" />
+                <span>Skip Break</span>
+              </button>
+            </div>
+          )}
 
           {/* Circular SVG Timer */}
           <div className="relative w-56 h-56 sm:w-64 sm:h-64 aspect-square flex items-center justify-center mb-6 shrink-0">
@@ -247,7 +272,6 @@ export const FocusTimerModal: React.FC<FocusTimerModalProps> = ({ isOpen, onClos
               viewBox="0 0 256 256" 
               className="w-full h-full aspect-square -rotate-90 origin-center select-none pointer-events-none"
             >
-              {/* Background Ring */}
               <circle
                 cx="128"
                 cy="128"
@@ -255,16 +279,15 @@ export const FocusTimerModal: React.FC<FocusTimerModalProps> = ({ isOpen, onClos
                 className="stroke-slate-100 dark:stroke-slate-800 fill-none"
                 strokeWidth="12"
               />
-              {/* Animated Progress Ring */}
               <circle
                 cx="128"
                 cy="128"
                 r={radius}
                 className={`fill-none transition-all duration-300 ease-linear ${
-                  activeTimer.mode === 'short_break' 
+                  isBreak 
                     ? 'stroke-emerald-500' 
-                    : activeTimer.mode === 'long_break' 
-                    ? 'stroke-teal-500' 
+                    : isStopwatch 
+                    ? 'stroke-indigo-500' 
                     : 'stroke-indigo-600 dark:stroke-indigo-500'
                 }`}
                 strokeWidth="12"
@@ -276,17 +299,23 @@ export const FocusTimerModal: React.FC<FocusTimerModalProps> = ({ isOpen, onClos
               />
             </svg>
 
-            {/* Inner Content - Symmetrically balanced */}
             <div className="absolute inset-0 flex flex-col items-center justify-between text-center p-4 sm:p-5 pointer-events-none">
               <div className="flex-1 flex items-end justify-center pb-1">
                 <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 capitalize">
-                  {activeTimer.mode.replace('_', ' ')}
+                  {isStopwatch ? 'Stopwatch' : activeTimer.mode.replace('_', ' ')}
                 </span>
               </div>
 
-              <div className="shrink-0 flex items-center justify-center my-auto">
+              <div className="shrink-0 flex flex-col items-center justify-center my-auto">
                 <span className="text-4xl sm:text-5xl font-extrabold tracking-tight text-slate-900 dark:text-white font-mono leading-none tabular-nums select-text pointer-events-auto">
                   {timeFormatted}
+                </span>
+                <span className="text-[10px] font-mono mt-1 font-semibold text-slate-400">
+                  {isBreak 
+                    ? '0 XP (Break)' 
+                    : isStopwatch 
+                    ? `+${Math.floor((activeTimer.stopwatchElapsedSeconds || 0) / 60)} XP (1 XP/min)` 
+                    : `+${Math.floor((activeTimer.accumulatedFocusedSeconds + (activeTimer.isRunning && activeTimer.phase === 'focus' && activeTimer.focusSegmentStartTime ? Math.max(0, Math.floor((Date.now() - activeTimer.focusSegmentStartTime) / 1000)) : 0)) / 60)} XP`}
                 </span>
               </div>
 
@@ -301,45 +330,12 @@ export const FocusTimerModal: React.FC<FocusTimerModalProps> = ({ isOpen, onClos
             </div>
           </div>
 
-          {/* Time Adjustment Controls (+/- 1m) */}
-          <div className="flex items-center gap-3 mb-6">
-            <button
-              onClick={() => adjustTimerTime(-60)}
-              className="px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-bold transition-all"
-              title="Subtract 1 minute"
-            >
-              -1m
-            </button>
-            <button
-              onClick={() => adjustTimerTime(-300)}
-              className="px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-bold transition-all"
-              title="Subtract 5 minutes"
-            >
-              -5m
-            </button>
-            <button
-              onClick={() => adjustTimerTime(300)}
-              className="px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-bold transition-all"
-              title="Add 5 minutes"
-            >
-              +5m
-            </button>
-            <button
-              onClick={() => adjustTimerTime(60)}
-              className="px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-bold transition-all"
-              title="Add 1 minute"
-            >
-              +1m
-            </button>
-          </div>
-
-          {/* Primary Action Buttons */}
-          <div className="flex items-center gap-4 w-full max-w-xs justify-center mb-5">
+          {/* Main Action Buttons */}
+          <div className="flex items-center gap-3 w-full max-w-xs justify-center mb-6">
             <button
               onClick={handleReset}
-              className="p-3 rounded-2xl border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800 transition-all shadow-2xs"
+              className="p-3 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
               title="Reset Timer"
-              aria-label="Reset Timer"
             >
               <RotateCcw className="w-5 h-5" />
             </button>
@@ -347,8 +343,7 @@ export const FocusTimerModal: React.FC<FocusTimerModalProps> = ({ isOpen, onClos
             {activeTimer.isRunning ? (
               <button
                 onClick={handlePause}
-                className="flex-1 flex items-center justify-center gap-2 py-3.5 px-6 rounded-2xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-sm shadow-md shadow-amber-500/20 transition-all active:scale-95"
-                aria-label="Pause Timer"
+                className="flex-1 py-3 px-6 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-sm shadow-md shadow-amber-500/20 transition-all flex items-center justify-center gap-2 cursor-pointer"
               >
                 <Pause className="w-5 h-5 fill-white" />
                 <span>Pause</span>
@@ -356,75 +351,76 @@ export const FocusTimerModal: React.FC<FocusTimerModalProps> = ({ isOpen, onClos
             ) : (
               <button
                 onClick={handleStartOrResume}
-                className="flex-1 flex items-center justify-center gap-2 py-3.5 px-6 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm shadow-md shadow-indigo-600/20 transition-all active:scale-95"
-                aria-label="Start or Resume Timer"
+                className={`flex-1 py-3 px-6 rounded-xl font-bold text-sm shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                  isBreak 
+                    ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20' 
+                    : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-500/20'
+                }`}
               >
                 <Play className="w-5 h-5 fill-white" />
-                <span>{activeTimer.secondsRemaining === totalSeconds ? 'Start Flow' : 'Resume'}</span>
+                <span>
+                  {isStopwatch 
+                    ? (activeTimer.stopwatchElapsedSeconds ? 'Resume Stopwatch' : 'Start Stopwatch')
+                    : activeTimer.secondsRemaining === activeTimer.initialDurationSeconds 
+                      ? (isBreak ? 'Start Break' : 'Start Focus') 
+                      : 'Resume'}
+                </span>
               </button>
             )}
 
             <button
               onClick={handleFinishAndSave}
-              className="p-3 rounded-2xl border border-emerald-200 dark:border-emerald-800/50 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 transition-all shadow-2xs"
-              title="Complete & Log Session"
-              aria-label="Finish and Log Session"
+              className="p-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 transition-colors cursor-pointer"
+              title="Finish and Save Session"
             >
               <Check className="w-5 h-5" />
             </button>
           </div>
 
-          {/* Ambient Sound Compact Control */}
-          <div className="w-full mb-4">
-            <AmbientSoundControl compact={true} />
-          </div>
-
-          {/* Subject & Task Tagging Selectors */}
+          {/* Subject & Task Selection */}
           <div className="w-full space-y-3 pt-4 border-t border-slate-100 dark:border-slate-800">
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
-                  Tag Subject
-                </label>
-                <select
-                  value={selectedSubjectId}
-                  onChange={(e) => setSelectedSubjectId(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-800 dark:text-slate-200 bg-white dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                >
-                  <option value="">No Subject (General)</option>
-                  {subjects.map(s => (
-                    <option key={s.id} value={s.id}>{s.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
-                  Link Task (Optional)
-                </label>
-                <select
-                  value={selectedTaskId}
-                  onChange={(e) => setSelectedTaskId(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-800 dark:text-slate-200 bg-white dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                >
-                  <option value="">No linked task</option>
-                  {tasks.filter(t => t.status !== 'completed').map(t => (
-                    <option key={t.id} value={t.id}>{t.title}</option>
-                  ))}
-                </select>
-              </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">
+                Subject
+              </label>
+              <select
+                value={selectedSubjectId}
+                onChange={(e) => setSelectedSubjectId(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 text-xs font-medium cursor-pointer"
+              >
+                <option value="">No subject assigned</option>
+                {subjects.map(s => (
+                  <option key={s.id} value={s.id}>{s.name}</option>
+                ))}
+              </select>
             </div>
 
             <div>
-              <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
-                Session Reflection / Notes
+              <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">
+                Linked Task (Optional)
+              </label>
+              <select
+                value={selectedTaskId}
+                onChange={(e) => setSelectedTaskId(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 text-xs font-medium cursor-pointer"
+              >
+                <option value="">No specific task</option>
+                {tasks.filter(t => t.status === 'pending').map(t => (
+                  <option key={t.id} value={t.id}>{t.title}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">
+                Session Notes (Optional)
               </label>
               <input
                 type="text"
+                placeholder="What did you focus on?"
                 value={sessionNotes}
                 onChange={(e) => setSessionNotes(e.target.value)}
-                placeholder="What did you accomplish in this session?"
-                className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-800 dark:text-slate-200 bg-white dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 text-xs font-medium"
               />
             </div>
           </div>

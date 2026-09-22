@@ -32,7 +32,7 @@ import { ThemeMode, NotificationSettings, AmbientSoundType } from '../../types';
 interface SettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
-  initialTab?: 'profile' | 'themes' | 'goals' | 'notifications' | 'account';
+  initialTab?: 'profile' | 'themes' | 'goals' | 'notifications' | 'pomodoro' | 'account';
 }
 
 const AVATAR_OPTIONS = [
@@ -65,7 +65,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   } = useAuth();
 
   const { theme, setTheme, themesList } = useTheme();
-  const { subjects, tasks, focusSessions, goals } = useStudy();
+  const { subjects, tasks, focusSessions, goals, pomodoroSettings, updatePomodoroSettings } = useStudy();
   const { showSuccess, showError, showInfo } = useToast();
   const { 
     soundSettings, 
@@ -79,7 +79,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     toggleAmbientPlayback 
   } = useSound();
 
-  const [activeTab, setActiveTab] = useState<'profile' | 'themes' | 'goals' | 'notifications' | 'account'>(initialTab);
+  const [activeTab, setActiveTab] = useState<'profile' | 'themes' | 'goals' | 'notifications' | 'pomodoro' | 'account'>(initialTab);
 
   // Profile Form States
   const [displayName, setDisplayName] = useState(userProfile?.displayName || '');
@@ -323,6 +323,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           {[
             { id: 'profile' as const, label: 'Profile', icon: User },
             { id: 'themes' as const, label: 'Themes', icon: Palette },
+            { id: 'pomodoro' as const, label: 'Pomodoro & Timer', icon: Clock },
             { id: 'goals' as const, label: 'Daily Targets', icon: Target },
             { id: 'notifications' as const, label: 'Sound & Alerts', icon: Bell },
             { id: 'account' as const, label: 'Account & Security', icon: Shield },
@@ -596,6 +597,240 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     </button>
                   );
                 })}
+              </div>
+            </div>
+          )}
+
+          {/* TAB: POMODORO & TIMER SETTINGS */}
+          {activeTab === 'pomodoro' && (
+            <div className="space-y-6">
+              <div>
+                <h3 className="text-sm font-bold">Pomodoro & Timer Configuration</h3>
+                <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-secondary)' }}>
+                  Configure your default focus durations, rest break lengths, cycle intervals, and transition automations.
+                </p>
+              </div>
+
+              {/* XP Rule info callout */}
+              <div 
+                className="p-4 rounded-xl border flex items-start gap-3"
+                style={{
+                  backgroundColor: 'rgba(16, 185, 129, 0.08)',
+                  borderColor: 'rgba(16, 185, 129, 0.25)',
+                  color: 'var(--color-text-primary)'
+                }}
+              >
+                <Sparkles className="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" />
+                <div className="space-y-1 text-xs">
+                  <div className="font-bold text-emerald-600 dark:text-emerald-400">XP & Gamification Precision Rule</div>
+                  <p className="text-slate-600 dark:text-slate-300 leading-relaxed">
+                    You earn exactly <strong>1 XP per completed minute</strong> of genuine focus study. Break periods (short and long) are strictly for rest and earn <strong>0 XP</strong>.
+                  </p>
+                </div>
+              </div>
+
+              {/* Durations Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                {/* Focus Duration */}
+                <div 
+                  className="p-4 rounded-xl border space-y-2"
+                  style={{
+                    backgroundColor: 'var(--color-bg-subtle)',
+                    borderColor: 'var(--color-border-default)'
+                  }}
+                >
+                  <label className="block text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--color-text-secondary)' }}>
+                    Focus Time (min)
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <input 
+                      type="number"
+                      min={1}
+                      max={180}
+                      value={pomodoroSettings.focusDurationMinutes}
+                      onChange={(e) => updatePomodoroSettings({ focusDurationMinutes: Math.max(1, parseInt(e.target.value) || 1) })}
+                      className="w-full px-3 py-2 border rounded-xl text-base font-bold font-mono focus:outline-none"
+                      style={{
+                        backgroundColor: 'var(--color-bg-surface)',
+                        borderColor: 'var(--color-border-default)',
+                        color: 'var(--color-text-primary)'
+                      }}
+                    />
+                  </div>
+                  <div className="flex gap-1 flex-wrap pt-1">
+                    {[15, 25, 45, 50, 60].map(mins => (
+                      <button
+                        key={mins}
+                        type="button"
+                        onClick={() => updatePomodoroSettings({ focusDurationMinutes: mins })}
+                        className={`px-2 py-0.5 rounded text-[10px] font-bold border transition-colors ${
+                          pomodoroSettings.focusDurationMinutes === mins 
+                            ? 'bg-emerald-500/20 border-emerald-500 text-emerald-500' 
+                            : 'border-[var(--color-border-default)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
+                        }`}
+                      >
+                        {mins}m
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Short Break */}
+                <div 
+                  className="p-4 rounded-xl border space-y-2"
+                  style={{
+                    backgroundColor: 'var(--color-bg-subtle)',
+                    borderColor: 'var(--color-border-default)'
+                  }}
+                >
+                  <label className="block text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--color-text-secondary)' }}>
+                    Short Break (min)
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <input 
+                      type="number"
+                      min={1}
+                      max={60}
+                      value={pomodoroSettings.shortBreakDurationMinutes}
+                      onChange={(e) => updatePomodoroSettings({ shortBreakDurationMinutes: Math.max(1, parseInt(e.target.value) || 1) })}
+                      className="w-full px-3 py-2 border rounded-xl text-base font-bold font-mono focus:outline-none"
+                      style={{
+                        backgroundColor: 'var(--color-bg-surface)',
+                        borderColor: 'var(--color-border-default)',
+                        color: 'var(--color-text-primary)'
+                      }}
+                    />
+                  </div>
+                  <div className="flex gap-1 flex-wrap pt-1">
+                    {[3, 5, 8, 10].map(mins => (
+                      <button
+                        key={mins}
+                        type="button"
+                        onClick={() => updatePomodoroSettings({ shortBreakDurationMinutes: mins })}
+                        className={`px-2 py-0.5 rounded text-[10px] font-bold border transition-colors ${
+                          pomodoroSettings.shortBreakDurationMinutes === mins 
+                            ? 'bg-emerald-500/20 border-emerald-500 text-emerald-500' 
+                            : 'border-[var(--color-border-default)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
+                        }`}
+                      >
+                        {mins}m
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Long Break */}
+                <div 
+                  className="p-4 rounded-xl border space-y-2"
+                  style={{
+                    backgroundColor: 'var(--color-bg-subtle)',
+                    borderColor: 'var(--color-border-default)'
+                  }}
+                >
+                  <label className="block text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--color-text-secondary)' }}>
+                    Long Break (min)
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <input 
+                      type="number"
+                      min={1}
+                      max={120}
+                      value={pomodoroSettings.longBreakDurationMinutes}
+                      onChange={(e) => updatePomodoroSettings({ longBreakDurationMinutes: Math.max(1, parseInt(e.target.value) || 1) })}
+                      className="w-full px-3 py-2 border rounded-xl text-base font-bold font-mono focus:outline-none"
+                      style={{
+                        backgroundColor: 'var(--color-bg-surface)',
+                        borderColor: 'var(--color-border-default)',
+                        color: 'var(--color-text-primary)'
+                      }}
+                    />
+                  </div>
+                  <div className="flex gap-1 flex-wrap pt-1">
+                    {[10, 15, 20, 30].map(mins => (
+                      <button
+                        key={mins}
+                        type="button"
+                        onClick={() => updatePomodoroSettings({ longBreakDurationMinutes: mins })}
+                        className={`px-2 py-0.5 rounded text-[10px] font-bold border transition-colors ${
+                          pomodoroSettings.longBreakDurationMinutes === mins 
+                            ? 'bg-emerald-500/20 border-emerald-500 text-emerald-500' 
+                            : 'border-[var(--color-border-default)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
+                        }`}
+                      >
+                        {mins}m
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Cycle & Automation Preferences */}
+              <div 
+                className="p-4 rounded-xl border space-y-4"
+                style={{
+                  backgroundColor: 'var(--color-bg-subtle)',
+                  borderColor: 'var(--color-border-default)'
+                }}
+              >
+                <div className="text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--color-text-secondary)' }}>
+                  Cycle Automation & Intervals
+                </div>
+
+                {/* Long break interval */}
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-xs font-bold">Long Break Interval</div>
+                    <div className="text-[11px]" style={{ color: 'var(--color-text-secondary)' }}>
+                      Trigger a longer rest after completing this many focus sessions
+                    </div>
+                  </div>
+                  <select
+                    value={pomodoroSettings.longBreakInterval}
+                    onChange={(e) => updatePomodoroSettings({ longBreakInterval: parseInt(e.target.value) || 4 })}
+                    className="px-3 py-1.5 border rounded-xl text-xs font-bold focus:outline-none"
+                    style={{
+                      backgroundColor: 'var(--color-bg-surface)',
+                      borderColor: 'var(--color-border-default)',
+                      color: 'var(--color-text-primary)'
+                    }}
+                  >
+                    {[2, 3, 4, 5, 6].map(num => (
+                      <option key={num} value={num}>Every {num} Pomodoros</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Auto Start Breaks */}
+                <div className="flex items-center justify-between pt-3 border-t" style={{ borderColor: 'var(--color-border-default)' }}>
+                  <div>
+                    <div className="text-xs font-bold">Auto-Start Breaks</div>
+                    <div className="text-[11px]" style={{ color: 'var(--color-text-secondary)' }}>
+                      Automatically start break countdown when a focus session finishes
+                    </div>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={pomodoroSettings.autoStartBreaks}
+                    onChange={(e) => updatePomodoroSettings({ autoStartBreaks: e.target.checked })}
+                    className="w-4 h-4 accent-[var(--color-accent-primary)] rounded cursor-pointer"
+                  />
+                </div>
+
+                {/* Auto Start Pomodoros */}
+                <div className="flex items-center justify-between pt-3 border-t" style={{ borderColor: 'var(--color-border-default)' }}>
+                  <div>
+                    <div className="text-xs font-bold">Auto-Start Next Focus Session</div>
+                    <div className="text-[11px]" style={{ color: 'var(--color-text-secondary)' }}>
+                      Automatically resume focus timer when a break countdown concludes
+                    </div>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={pomodoroSettings.autoStartPomodoros}
+                    onChange={(e) => updatePomodoroSettings({ autoStartPomodoros: e.target.checked })}
+                    className="w-4 h-4 accent-[var(--color-accent-primary)] rounded cursor-pointer"
+                  />
+                </div>
               </div>
             </div>
           )}

@@ -13,7 +13,7 @@ import {
 } from 'firebase/auth';
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { auth, db, googleProvider, handleFirestoreError, OperationType } from '../lib/firebase';
-import { UserProfile, ThemeMode, NotificationSettings } from '../types';
+import { UserProfile, ThemeMode, NotificationSettings, PomodoroSettings, DEFAULT_POMODORO_SETTINGS } from '../types';
 
 interface AuthContextType {
   user: User | null;
@@ -32,6 +32,7 @@ interface AuthContextType {
   updateAvatar: (avatarIdOrUrl: string) => Promise<void>;
   updateTheme: (theme: ThemeMode) => Promise<void>;
   updateNotifications: (settings: NotificationSettings) => Promise<void>;
+  updatePomodoroSettings: (settings: PomodoroSettings) => Promise<void>;
   changePassword: (newPass: string) => Promise<void>;
   refreshProfile: () => Promise<void>;
 }
@@ -126,6 +127,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           theme: data.theme || 'light',
           dailyGoalMinutes: data.dailyGoalMinutes || 120,
           streakCount: streak,
+          pomodoroSettings: data.pomodoroSettings || DEFAULT_POMODORO_SETTINGS,
           notificationSettings: data.notificationSettings || defaultNotifications,
           soundSettings: data.soundSettings,
           gamification: data.gamification,
@@ -147,6 +149,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           theme: 'light',
           dailyGoalMinutes: 120, // default 2 hours daily study goal
           streakCount: 1,
+          pomodoroSettings: DEFAULT_POMODORO_SETTINGS,
           notificationSettings: defaultNotifications,
           lastActiveDate: today,
           gamification: {
@@ -360,6 +363,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const updatePomodoroSettings = async (settings: PomodoroSettings) => {
+    if (!user || !userProfile) return;
+    try {
+      const userDocRef = doc(db, 'users', user.uid);
+      await updateDoc(userDocRef, {
+        pomodoroSettings: settings,
+        updatedAt: new Date().toISOString()
+      });
+      setUserProfile(prev => prev ? { ...prev, pomodoroSettings: settings } : null);
+    } catch (err) {
+      handleFirestoreError(err, OperationType.UPDATE, `users/${user.uid}`);
+    }
+  };
+
   const changePassword = async (newPass: string) => {
     if (!auth.currentUser) return;
     try {
@@ -396,6 +413,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         updateAvatar,
         updateTheme,
         updateNotifications,
+        updatePomodoroSettings,
         changePassword,
         refreshProfile,
       }}

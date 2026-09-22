@@ -14,6 +14,17 @@
         "dailyGoalMinutes": { "type": "number" },
         "streakCount": { "type": "number" },
         "lastActiveDate": { "type": "string", "maxLength": 30 },
+        "pomodoroSettings": {
+          "type": "object",
+          "properties": {
+            "focusDurationMinutes": { "type": "number" },
+            "shortBreakDurationMinutes": { "type": "number" },
+            "longBreakDurationMinutes": { "type": "number" },
+            "longBreakInterval": { "type": "number" },
+            "autoStartBreaks": { "type": "boolean" },
+            "autoStartPomodoros": { "type": "boolean" }
+          }
+        },
         "notificationSettings": {
           "type": "object",
           "properties": {

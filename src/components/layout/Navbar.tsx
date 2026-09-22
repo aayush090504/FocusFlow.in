@@ -70,12 +70,12 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onOpenS
   const avatarInfo = AVATAR_MAP[avatarKey] || AVATAR_MAP['avatar-1'];
 
   const navItems = [
-    { id: 'dashboard' as ActiveTab, label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'tasks' as ActiveTab, label: 'Tasks', icon: CheckSquare },
-    { id: 'focus' as ActiveTab, label: 'Focus Timer', icon: Clock },
-    { id: 'subjects' as ActiveTab, label: 'Subjects', icon: BookOpen },
-    { id: 'goals' as ActiveTab, label: 'Goals', icon: Target },
-    { id: 'analytics' as ActiveTab, label: 'Progress', icon: BarChart3 },
+    { id: 'dashboard' as ActiveTab, label: 'Dashboard', shortLabel: 'Home', icon: LayoutDashboard },
+    { id: 'tasks' as ActiveTab, label: 'Tasks', shortLabel: 'Tasks', icon: CheckSquare },
+    { id: 'focus' as ActiveTab, label: 'Focus Timer', shortLabel: 'Focus', icon: Clock },
+    { id: 'subjects' as ActiveTab, label: 'Subjects', shortLabel: 'Subjects', icon: BookOpen },
+    { id: 'goals' as ActiveTab, label: 'Goals', shortLabel: 'Goals', icon: Target },
+    { id: 'analytics' as ActiveTab, label: 'Progress', shortLabel: 'Stats', icon: BarChart3 },
   ];
 
   return (
@@ -88,31 +88,31 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onOpenS
         color: 'var(--color-text-primary)'
       }}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-          {/* Left: Brand */}
-          <div className="flex items-center gap-6">
+      <div className="max-w-7xl mx-auto px-2.5 sm:px-4 lg:px-8">
+        <div className="flex items-center justify-between h-14 sm:h-16 gap-2 sm:gap-4">
+          {/* Left: Brand & Responsive Navigation */}
+          <div className="flex items-center gap-2 sm:gap-4 lg:gap-6 min-w-0">
             <button 
               onClick={() => setActiveTab('dashboard')}
-              className="flex items-center gap-2.5 group text-left cursor-pointer focus-visible:ring-2 rounded-xl p-1"
+              className="flex items-center gap-2 sm:gap-2.5 group text-left cursor-pointer focus-visible:ring-2 rounded-xl p-0.5 sm:p-1 shrink-0"
               aria-label="Focus Flow - Return to Dashboard"
             >
               <div 
-                className="w-9 h-9 rounded-xl flex items-center justify-center shadow-md group-hover:scale-105 transition-transform"
+                className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center shadow-md group-hover:scale-105 transition-transform shrink-0"
                 style={{
                   backgroundColor: 'var(--color-accent-primary)',
                   color: 'var(--color-accent-fg)'
                 }}
               >
-                <Sparkles className="w-5 h-5" />
+                <Sparkles className="w-4 h-4 sm:w-5 sm:h-5" />
               </div>
               <div className="flex flex-col">
                 <div className="flex items-center gap-1.5">
-                  <span className="font-bold tracking-tight text-base leading-none" style={{ color: 'var(--color-text-primary)' }}>
+                  <span className="font-bold tracking-tight text-sm sm:text-base leading-none" style={{ color: 'var(--color-text-primary)' }}>
                     Focus Flow
                   </span>
                   <span 
-                    className="text-[10px] font-bold px-1.5 py-0.5 rounded border leading-none"
+                    className="hidden xl:inline-block text-[10px] font-bold px-1.5 py-0.5 rounded border leading-none"
                     style={{
                       backgroundColor: 'var(--color-accent-subtle)',
                       borderColor: 'var(--color-border-default)',
@@ -122,14 +122,14 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onOpenS
                     focusflow.in
                   </span>
                 </div>
-                <span className="text-[10px] font-medium leading-none mt-0.5" style={{ color: 'var(--color-text-secondary)' }}>
+                <span className="hidden sm:block text-[10px] font-medium leading-none mt-0.5" style={{ color: 'var(--color-text-secondary)' }}>
                   Student Study Workspace
                 </span>
               </div>
             </button>
 
-            {/* Desktop Navigation Links */}
-            <nav aria-label="Main Navigation" className="hidden md:flex items-center gap-1">
+            {/* Desktop / Laptop Navigation Links */}
+            <nav aria-label="Main Navigation" className="hidden md:flex items-center gap-1 lg:gap-1.5 shrink-0">
               {navItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = activeTab === item.id;
@@ -137,17 +137,20 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onOpenS
                   <button
                     key={item.id}
                     onClick={() => setActiveTab(item.id)}
-                    className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold transition-all touch-target ${
-                      isActive ? 'font-bold shadow-2xs' : 'hover:opacity-80'
+                    className={`flex items-center gap-1.5 p-2 lg:px-2.5 lg:py-1.5 xl:px-3 xl:py-2 rounded-lg text-xs transition-all touch-target shrink-0 ${
+                      isActive ? 'font-bold shadow-2xs' : 'font-semibold hover:opacity-80'
                     }`}
                     style={{
                       backgroundColor: isActive ? 'var(--color-accent-subtle)' : 'transparent',
                       color: isActive ? 'var(--color-accent-subtle-text)' : 'var(--color-text-secondary)'
                     }}
+                    title={item.label}
+                    aria-label={item.label}
                     aria-current={isActive ? 'page' : undefined}
                   >
-                    <Icon className="w-4 h-4" style={{ color: isActive ? 'var(--color-accent-primary)' : 'inherit' }} />
-                    <span>{item.label}</span>
+                    <Icon className="w-4 h-4 shrink-0" style={{ color: isActive ? 'var(--color-accent-primary)' : 'inherit' }} />
+                    <span className="hidden xl:inline">{item.label}</span>
+                    <span className="hidden lg:inline xl:hidden">{item.shortLabel}</span>
                   </button>
                 );
               })}
@@ -155,31 +158,11 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onOpenS
           </div>
 
           {/* Right: Quick actions, Streak, and User menu */}
-          <div className="flex items-center gap-2 sm:gap-3">
-            {/* Active running timer indicator banner if running in background */}
-            {activeTimer.isRunning && (
-              <button
-                onClick={() => setIsTimerModalOpen(true)}
-                className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-bold animate-pulse transition-colors"
-                style={{
-                  backgroundColor: 'rgba(16, 185, 129, 0.15)',
-                  borderColor: 'rgba(16, 185, 129, 0.4)',
-                  color: '#10b981'
-                }}
-                aria-label={`Timer running: ${Math.floor(activeTimer.secondsRemaining / 60)} minutes and ${activeTimer.secondsRemaining % 60} seconds remaining`}
-              >
-                <div className="w-2 h-2 rounded-full bg-emerald-500" />
-                <span>
-                  Focusing: {Math.floor(activeTimer.secondsRemaining / 60)}:
-                  {String(activeTimer.secondsRemaining % 60).padStart(2, '0')}
-                </span>
-              </button>
-            )}
-
+          <div className="flex items-center gap-1.5 sm:gap-2 lg:gap-2.5 shrink-0 ml-auto">
             {/* Gamification Level & XP Chip */}
             <button
               onClick={() => setIsBadgesModalOpen(true)}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-bold transition-all hover:scale-105 active:scale-95 touch-target"
+              className="flex items-center gap-1 sm:gap-1.5 px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-lg border text-xs font-bold transition-all hover:scale-105 active:scale-95 touch-target shrink-0"
               style={{
                 backgroundColor: 'var(--color-accent-subtle)',
                 borderColor: 'var(--color-border-default)',
@@ -188,14 +171,14 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onOpenS
               title={`Level ${levelInfo.level}: ${levelInfo.title} (${levelInfo.totalXp} XP) - Click to view achievements`}
               aria-label={`Scholar Level ${levelInfo.level}, ${levelInfo.totalXp} total XP, ${levelInfo.progressPercent}% to next level. Open Achievements.`}
             >
-              <Zap className="w-3.5 h-3.5 fill-current" style={{ color: 'var(--color-accent-primary)' }} />
+              <Zap className="w-3.5 h-3.5 fill-current shrink-0" style={{ color: 'var(--color-accent-primary)' }} />
               <span>Lvl {levelInfo.level}</span>
-              <span className="hidden sm:inline opacity-75 font-mono text-[11px]">• {levelInfo.totalXp} XP</span>
+              <span className="hidden xl:inline opacity-75 font-mono text-[11px]">• {levelInfo.totalXp} XP</span>
             </button>
 
             {/* Streak Badge */}
             <div 
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-bold cursor-default"
+              className="flex items-center gap-1 sm:gap-1.5 px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-lg border text-xs font-bold cursor-default shrink-0"
               style={{
                 backgroundColor: 'rgba(245, 158, 11, 0.12)',
                 borderColor: 'rgba(245, 158, 11, 0.3)',
@@ -204,15 +187,17 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onOpenS
               title={`${streakCount} day study streak!`}
               aria-label={`${streakCount} day continuous study streak`}
             >
-              <Flame className="w-4 h-4 text-amber-500 fill-amber-500" />
-              <span>{streakCount} {streakCount === 1 ? 'day' : 'days'}</span>
+              <Flame className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-500 fill-amber-500 shrink-0" />
+              <span>{streakCount}</span>
+              <span className="hidden sm:inline">{streakCount === 1 ? ' day' : ' days'}</span>
+              <span className="sm:hidden">d</span>
             </div>
 
             {/* Keyboard Shortcuts Trigger Button */}
             {onOpenShortcuts && (
               <button
                 onClick={onOpenShortcuts}
-                className="hidden lg:flex items-center gap-1 p-2 rounded-xl border transition-all hover:opacity-90 touch-target"
+                className="hidden xl:flex items-center gap-1 p-2 rounded-xl border transition-all hover:opacity-90 touch-target"
                 style={{
                   backgroundColor: 'var(--color-bg-subtle)',
                   borderColor: 'var(--color-border-default)',
@@ -235,7 +220,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onOpenS
                   startTimer('pomodoro', 25);
                 }
               }}
-              className="hidden lg:flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold shadow-xs transition-all active:scale-95 touch-target"
+              className="hidden xl:flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold shadow-xs transition-all active:scale-95 touch-target"
               style={{
                 backgroundColor: 'var(--color-accent-primary)',
                 color: 'var(--color-accent-fg)'
@@ -247,10 +232,10 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onOpenS
             </button>
 
             {/* User Profile Menu */}
-            <div className="relative">
+            <div className="relative shrink-0">
               <button
                 onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
-                className="flex items-center gap-2 p-1.5 rounded-xl border transition-all hover:opacity-90 touch-target"
+                className="flex items-center gap-1.5 sm:gap-2 p-1 sm:p-1.5 rounded-xl border transition-all hover:opacity-90 touch-target"
                 style={{
                   backgroundColor: 'var(--color-bg-subtle)',
                   borderColor: 'var(--color-border-default)'
@@ -259,11 +244,11 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onOpenS
                 aria-haspopup="true"
                 aria-expanded={isProfileDropdownOpen}
               >
-                <div className={`w-7 h-7 rounded-lg ${avatarInfo.bg} text-white flex items-center justify-center text-sm shadow-2xs`}>
+                <div className={`w-6 h-6 sm:w-7 sm:h-7 rounded-lg ${avatarInfo.bg} text-white flex items-center justify-center text-xs sm:text-sm shadow-2xs shrink-0`}>
                   {avatarInfo.emoji}
                 </div>
-                <span className="hidden sm:inline text-xs font-bold max-w-[100px] truncate" style={{ color: 'var(--color-text-primary)' }}>
-                  {userProfile?.displayName || 'Student'}
+                <span className="inline-block text-xs font-bold max-w-[65px] xs:max-w-[85px] sm:max-w-[110px] truncate" style={{ color: 'var(--color-text-primary)' }}>
+                  {userProfile?.displayName?.split(' ')[0] || userProfile?.displayName || 'Student'}
                 </span>
               </button>
 
@@ -275,7 +260,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onOpenS
                     onClick={() => setIsProfileDropdownOpen(false)} 
                   />
                   <div 
-                    className="absolute right-0 mt-2 w-64 rounded-2xl border shadow-xl py-2 z-50 animate-fade-in"
+                    className="absolute right-0 mt-2 w-64 max-w-[calc(100vw-1.5rem)] rounded-2xl border shadow-xl py-2 z-50 animate-fade-in"
                     style={{
                       backgroundColor: 'var(--color-bg-surface)',
                       borderColor: 'var(--color-border-default)',
