@@ -106,9 +106,9 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onOpenS
               >
                 <Sparkles className="w-4 h-4 sm:w-5 sm:h-5" />
               </div>
-              <div className="flex flex-col">
+              <div className="flex flex-col min-w-0">
                 <div className="flex items-center gap-1.5">
-                  <span className="font-bold tracking-tight text-sm sm:text-base leading-none" style={{ color: 'var(--color-text-primary)' }}>
+                  <span className="font-bold tracking-tight text-sm sm:text-base leading-none whitespace-nowrap" style={{ color: 'var(--color-text-primary)' }}>
                     Focus Flow
                   </span>
                   <span 
@@ -159,10 +159,10 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onOpenS
 
           {/* Right: Quick actions, Streak, and User menu */}
           <div className="flex items-center gap-1.5 sm:gap-2 lg:gap-2.5 shrink-0 ml-auto">
-            {/* Gamification Level & XP Chip */}
+            {/* Gamification Level & XP Chip (Hidden on mobile to avoid header crowding, visible on laptop/tablet/desktop) */}
             <button
               onClick={() => setIsBadgesModalOpen(true)}
-              className="flex items-center gap-1 sm:gap-1.5 px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-lg border text-xs font-bold transition-all hover:scale-105 active:scale-95 touch-target shrink-0"
+              className="hidden sm:flex items-center gap-1 sm:gap-1.5 px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-lg border text-xs font-bold transition-all hover:scale-105 active:scale-95 touch-target shrink-0"
               style={{
                 backgroundColor: 'var(--color-accent-subtle)',
                 borderColor: 'var(--color-border-default)',
