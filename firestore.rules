@@ -37,38 +37,48 @@ service cloud.firestore {
         (!('soundSettings' in data) || data.soundSettings is map) &&
         (!('gamification' in data) || data.gamification is map) &&
         (!('deleted' in data) || data.deleted is bool) &&
-        (!('lastActiveDate' in data) || (data.lastActiveDate is string && data.lastActiveDate.size() <= 30));
+        (!('lastActiveDate' in data) || (data.lastActiveDate is string && data.lastActiveDate.size() <= 30)) &&
+        (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 50)) &&
+        (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 50));
     }
 
     function isValidSubject(data, userId) {
       return data.userId == userId &&
         data.name is string && data.name.size() > 0 && data.name.size() <= 80 &&
         data.color is string && data.color.size() <= 30 &&
+        (!('id' in data) || (data.id is string && data.id.size() <= 128)) &&
         (!('icon' in data) || (data.icon is string && data.icon.size() <= 40)) &&
         (!('description' in data) || (data.description is string && data.description.size() <= 500)) &&
-        (!('targetHoursPerWeek' in data) || (data.targetHoursPerWeek is number && data.targetHoursPerWeek >= 0 && data.targetHoursPerWeek <= 168));
+        (!('targetHoursPerWeek' in data) || (data.targetHoursPerWeek is number && data.targetHoursPerWeek >= 0 && data.targetHoursPerWeek <= 168)) &&
+        (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 50)) &&
+        (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 50));
     }
 
     function isValidTask(data, userId) {
       return data.userId == userId &&
         data.title is string && data.title.size() > 0 && data.title.size() <= 160 &&
-        data.status in ['todo', 'in_progress', 'completed'] &&
+        data.status in ['todo', 'pending', 'in_progress', 'completed'] &&
         data.priority in ['low', 'medium', 'high'] &&
+        (!('id' in data) || (data.id is string && data.id.size() <= 128)) &&
         (!('subjectId' in data) || (data.subjectId is string && data.subjectId.size() <= 128)) &&
         (!('description' in data) || (data.description is string && data.description.size() <= 1000)) &&
         (!('dueDate' in data) || (data.dueDate is string && data.dueDate.size() <= 40)) &&
         (!('estimatedMinutes' in data) || (data.estimatedMinutes is number && data.estimatedMinutes >= 0 && data.estimatedMinutes <= 10080)) &&
-        (!('completedAt' in data) || (data.completedAt is string && data.completedAt.size() <= 40));
+        (!('completedAt' in data) || (data.completedAt is string && data.completedAt.size() <= 50)) &&
+        (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 50)) &&
+        (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 50));
     }
 
     function isValidFocusSession(data, userId) {
       return data.userId == userId &&
         data.durationMinutes is number && data.durationMinutes >= 0 && data.durationMinutes <= 1440 &&
         data.mode in ['pomodoro', 'short_break', 'long_break', 'stopwatch', 'custom'] &&
+        (!('id' in data) || (data.id is string && data.id.size() <= 128)) &&
         (!('subjectId' in data) || (data.subjectId is string && data.subjectId.size() <= 128)) &&
         (!('taskId' in data) || (data.taskId is string && data.taskId.size() <= 128)) &&
         (!('notes' in data) || (data.notes is string && data.notes.size() <= 500)) &&
-        (!('completedAt' in data) || (data.completedAt is string && data.completedAt.size() <= 40));
+        (!('completedAt' in data) || (data.completedAt is string && data.completedAt.size() <= 50)) &&
+        (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 50));
     }
 
     function isValidGoal(data, userId) {
@@ -76,12 +86,15 @@ service cloud.firestore {
         data.title is string && data.title.size() > 0 && data.title.size() <= 160 &&
         data.targetValue is number && data.targetValue > 0 &&
         data.unit is string && data.unit.size() <= 40 &&
-        data.status in ['active', 'completed', 'archived'] &&
+        data.status in ['active', 'in_progress', 'completed', 'archived'] &&
+        (!('id' in data) || (data.id is string && data.id.size() <= 128)) &&
         (!('currentValue' in data) || data.currentValue is number) &&
         (!('subjectId' in data) || (data.subjectId is string && data.subjectId.size() <= 128)) &&
         (!('targetDate' in data) || (data.targetDate is string && data.targetDate.size() <= 40)) &&
         (!('notes' in data) || (data.notes is string && data.notes.size() <= 500)) &&
-        (!('completedAt' in data) || (data.completedAt is string && data.completedAt.size() <= 40));
+        (!('completedAt' in data) || (data.completedAt is string && data.completedAt.size() <= 50)) &&
+        (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 50)) &&
+        (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 50));
     }
 
     // Default deny catch-all
