@@ -20,7 +20,8 @@ import {
   KeyRound,
   CheckCircle2,
   Eye,
-  EyeOff
+  EyeOff,
+  MessageSquare
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
@@ -28,11 +29,12 @@ import { useStudy } from '../../context/StudyContext';
 import { useToast } from '../../context/ToastContext';
 import { useSound, AMBIENT_SOUND_OPTIONS } from '../../context/SoundContext';
 import { ThemeMode, NotificationSettings, AmbientSoundType } from '../../types';
+import { FeedbackSection } from './FeedbackSection';
 
 interface SettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
-  initialTab?: 'profile' | 'themes' | 'goals' | 'notifications' | 'pomodoro' | 'account';
+  initialTab?: 'profile' | 'themes' | 'goals' | 'notifications' | 'pomodoro' | 'account' | 'feedback';
 }
 
 const AVATAR_OPTIONS = [
@@ -79,7 +81,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     toggleAmbientPlayback 
   } = useSound();
 
-  const [activeTab, setActiveTab] = useState<'profile' | 'themes' | 'goals' | 'notifications' | 'pomodoro' | 'account'>(initialTab);
+  const [activeTab, setActiveTab] = useState<'profile' | 'themes' | 'goals' | 'notifications' | 'pomodoro' | 'account' | 'feedback'>(initialTab);
 
   // Profile Form States
   const [displayName, setDisplayName] = useState(userProfile?.displayName || '');
@@ -128,6 +130,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       }
     }
   }, [userProfile]);
+
+  useEffect(() => {
+    if (isOpen && initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [isOpen, initialTab]);
 
   if (!isOpen) return null;
 
@@ -326,6 +334,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             { id: 'pomodoro' as const, label: 'Pomodoro & Timer', icon: Clock },
             { id: 'goals' as const, label: 'Daily Targets', icon: Target },
             { id: 'notifications' as const, label: 'Sound & Alerts', icon: Bell },
+            { id: 'feedback' as const, label: 'Feedback & Suggestions', icon: MessageSquare },
             { id: 'account' as const, label: 'Account & Security', icon: Shield },
           ].map((tab) => {
             const Icon = tab.icon;
@@ -494,6 +503,47 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   ) : (
                     <span>Save Profile</span>
                   )}
+                </button>
+              </div>
+
+              {/* Feedback & Suggestions shortcut within Profile */}
+              <div 
+                className="p-4 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-4"
+                style={{
+                  backgroundColor: 'var(--color-bg-subtle)',
+                  borderColor: 'var(--color-border-default)'
+                }}
+              >
+                <div className="flex items-center gap-3">
+                  <div 
+                    className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+                    style={{
+                      backgroundColor: 'var(--color-accent-subtle)',
+                      color: 'var(--color-accent-subtle-text)'
+                    }}
+                  >
+                    <MessageSquare className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold" style={{ color: 'var(--color-text-primary)' }}>
+                      Have feedback or ideas for Focus Flow?
+                    </h4>
+                    <p className="text-[11px]" style={{ color: 'var(--color-text-secondary)' }}>
+                      Report bugs, suggest tools, or submit problems directly to our team.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('feedback')}
+                  className="px-3 py-1.5 rounded-lg border text-xs font-bold hover:opacity-85 transition-opacity shrink-0 self-start sm:self-auto cursor-pointer"
+                  style={{
+                    borderColor: 'var(--color-border-default)',
+                    backgroundColor: 'var(--color-bg-surface)',
+                    color: 'var(--color-text-primary)'
+                  }}
+                >
+                  Give Feedback
                 </button>
               </div>
             </form>
@@ -1543,6 +1593,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               </div>
 
             </div>
+          )}
+
+          {/* TAB 7: FEEDBACK & SUGGESTIONS */}
+          {activeTab === 'feedback' && (
+            <FeedbackSection onSuccessClose={onClose} />
           )}
 
         </div>

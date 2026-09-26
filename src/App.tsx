@@ -40,7 +40,13 @@ const MainAppContent: React.FC = () => {
   const { user, loading } = useAuth();
   const [activeTab, setActiveTab] = useState<ActiveTab>('dashboard');
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState<boolean>(false);
+  const [settingsInitialTab, setSettingsInitialTab] = useState<'profile' | 'themes' | 'goals' | 'notifications' | 'pomodoro' | 'account' | 'feedback'>('profile');
   const [isShortcutsModalOpen, setIsShortcutsModalOpen] = useState<boolean>(false);
+
+  const handleOpenSettings = (tab: 'profile' | 'themes' | 'goals' | 'notifications' | 'pomodoro' | 'account' | 'feedback' = 'profile') => {
+    setSettingsInitialTab(tab);
+    setIsSettingsModalOpen(true);
+  };
   const [unauthView, setUnauthView] = useState<'landing' | 'auth'>('landing');
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
   
@@ -239,7 +245,9 @@ const MainAppContent: React.FC = () => {
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         isSettingsModalOpen={isSettingsModalOpen}
-        setIsSettingsModalOpen={setIsSettingsModalOpen}
+        onOpenSettings={handleOpenSettings}
+        onCloseSettings={() => setIsSettingsModalOpen(false)}
+        settingsInitialTab={settingsInitialTab}
         isShortcutsModalOpen={isShortcutsModalOpen}
         setIsShortcutsModalOpen={setIsShortcutsModalOpen}
       />
@@ -251,7 +259,9 @@ interface AuthenticatedWorkspaceProps {
   activeTab: ActiveTab;
   setActiveTab: (tab: ActiveTab) => void;
   isSettingsModalOpen: boolean;
-  setIsSettingsModalOpen: (open: boolean) => void;
+  onOpenSettings: (tab?: 'profile' | 'themes' | 'goals' | 'notifications' | 'pomodoro' | 'account' | 'feedback') => void;
+  onCloseSettings: () => void;
+  settingsInitialTab: 'profile' | 'themes' | 'goals' | 'notifications' | 'pomodoro' | 'account' | 'feedback';
   isShortcutsModalOpen: boolean;
   setIsShortcutsModalOpen: (open: boolean) => void;
 }
@@ -260,7 +270,9 @@ const AuthenticatedWorkspace: React.FC<AuthenticatedWorkspaceProps> = ({
   activeTab,
   setActiveTab,
   isSettingsModalOpen,
-  setIsSettingsModalOpen,
+  onOpenSettings,
+  onCloseSettings,
+  settingsInitialTab,
   isShortcutsModalOpen,
   setIsShortcutsModalOpen,
 }) => {
@@ -426,7 +438,7 @@ const AuthenticatedWorkspace: React.FC<AuthenticatedWorkspaceProps> = ({
       <Navbar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
-        onOpenSettings={() => setIsSettingsModalOpen(true)}
+        onOpenSettings={onOpenSettings}
         onOpenShortcuts={() => setIsShortcutsModalOpen(true)}
       />
 
@@ -436,7 +448,7 @@ const AuthenticatedWorkspace: React.FC<AuthenticatedWorkspaceProps> = ({
         tabIndex={-1}
         className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-8 focus:outline-none"
       >
-        {activeTab === 'dashboard' && <DashboardView setActiveTab={setActiveTab} />}
+        {activeTab === 'dashboard' && <DashboardView setActiveTab={setActiveTab} onOpenSettings={onOpenSettings} />}
         {activeTab === 'tasks' && <TasksView />}
         {activeTab === 'focus' && <FocusTimerView />}
         {activeTab === 'subjects' && <SubjectsView />}
@@ -471,7 +483,8 @@ const AuthenticatedWorkspace: React.FC<AuthenticatedWorkspaceProps> = ({
 
       <SettingsModal
         isOpen={isSettingsModalOpen}
-        onClose={() => setIsSettingsModalOpen(false)}
+        onClose={onCloseSettings}
+        initialTab={settingsInitialTab}
       />
 
       <AccessibilityShortcutsModal
@@ -485,7 +498,7 @@ const AuthenticatedWorkspace: React.FC<AuthenticatedWorkspaceProps> = ({
       <MobileBottomNav
         activeTab={activeTab}
         setActiveTab={setActiveTab}
-        onOpenSettings={() => setIsSettingsModalOpen(true)}
+        onOpenSettings={onOpenSettings}
       />
     </div>
   );

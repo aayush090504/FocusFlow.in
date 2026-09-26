@@ -143,3 +143,16 @@ export interface Goal {
 }
 
 export type ActiveTab = 'dashboard' | 'tasks' | 'focus' | 'subjects' | 'analytics' | 'goals';
+
+export type FeedbackType = 'bug_report' | 'problem_complaint' | 'feature_suggestion' | 'general_feedback';
+export type FeedbackStatus = 'new' | 'reviewed' | 'resolved';
+
+export interface FeedbackSubmission {
+  id: string;
+  type: FeedbackType;
+  message: string;
+  email?: string;
+  userId?: string;
+  status: FeedbackStatus;
+  createdAt?: string;
+}

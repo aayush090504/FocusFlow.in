@@ -19,7 +19,9 @@ import {
   Target,
   Zap,
   Trophy,
-  ShieldCheck
+  ShieldCheck,
+  MessageSquare,
+  Lightbulb
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useStudy } from '../../context/StudyContext';
@@ -30,9 +32,10 @@ import { MiniCalendar } from '../common/MiniCalendar';
 
 interface DashboardViewProps {
   setActiveTab: (tab: ActiveTab) => void;
+  onOpenSettings?: (tab?: 'profile' | 'themes' | 'goals' | 'notifications' | 'pomodoro' | 'account' | 'feedback') => void;
 }
 
-export const DashboardView: React.FC<DashboardViewProps> = ({ setActiveTab }) => {
+export const DashboardView: React.FC<DashboardViewProps> = ({ setActiveTab, onOpenSettings }) => {
   const { userProfile } = useAuth();
   const { 
     subjects, 
@@ -938,6 +941,48 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ setActiveTab }) =>
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Prominent Suggestion Box Banner on Dashboard */}
+      <div 
+        className="mt-6 p-4 sm:p-5 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all"
+        style={{
+          backgroundColor: 'var(--color-bg-surface)',
+          borderColor: 'var(--color-border-default)',
+        }}
+      >
+        <div className="flex items-start sm:items-center gap-3.5">
+          <div 
+            className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-xs"
+            style={{
+              backgroundColor: 'var(--color-accent-subtle)',
+              color: 'var(--color-accent-subtle-text)'
+            }}
+          >
+            <MessageSquare className="w-5 h-5" />
+          </div>
+          <div>
+            <h3 className="text-sm font-bold tracking-tight" style={{ color: 'var(--color-text-primary)' }}>
+              Got an idea, feedback, or found a bug?
+            </h3>
+            <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-secondary)' }}>
+              Help us shape Focus Flow into the best study app. Drop your thoughts into our suggestion box anytime!
+            </p>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => onOpenSettings?.('feedback')}
+          className="flex items-center justify-center gap-2 px-4 py-2 sm:px-4 sm:py-2.5 rounded-xl text-xs font-bold transition-all shadow-xs hover:opacity-90 active:scale-95 shrink-0 self-start sm:self-auto cursor-pointer"
+          style={{
+            backgroundColor: 'var(--color-accent-primary)',
+            color: 'var(--color-accent-fg)',
+          }}
+        >
+          <Lightbulb className="w-4 h-4" />
+          <span>Open Suggestion Box</span>
+        </button>
       </div>
     </div>
   );

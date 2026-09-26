@@ -17,7 +17,8 @@ import {
   Palette,
   Keyboard,
   Trophy,
-  Zap
+  Zap,
+  MessageSquare
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
@@ -28,7 +29,7 @@ import { ActiveTab } from '../../types';
 interface NavbarProps {
   activeTab: ActiveTab;
   setActiveTab: (tab: ActiveTab) => void;
-  onOpenSettings: () => void;
+  onOpenSettings: (tab?: 'profile' | 'themes' | 'goals' | 'notifications' | 'pomodoro' | 'account' | 'feedback') => void;
   onOpenShortcuts?: () => void;
 }
 
@@ -231,6 +232,23 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onOpenS
               <span>Start Focus</span>
             </button>
 
+            {/* Prominent Feedback / Suggestion Box Trigger in Upper HUD */}
+            <button
+              onClick={() => onOpenSettings('feedback')}
+              className="flex items-center gap-1.5 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-xl border text-xs font-bold transition-all hover:scale-105 active:scale-95 touch-target shadow-2xs shrink-0 cursor-pointer"
+              style={{
+                backgroundColor: 'var(--color-accent-subtle)',
+                borderColor: 'var(--color-border-default)',
+                color: 'var(--color-accent-subtle-text)'
+              }}
+              title="Open Suggestion Box & Feedback"
+              aria-label="Open Suggestion Box & Feedback"
+            >
+              <MessageSquare className="w-3.5 h-3.5 text-[var(--color-accent-primary)]" />
+              <span className="hidden sm:inline">Suggestions</span>
+              <span className="sm:hidden text-[11px]">Feedback</span>
+            </button>
+
             {/* User Profile Menu */}
             <div className="relative shrink-0">
               <button
@@ -370,6 +388,18 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onOpenS
                       <button
                         onClick={() => {
                           setIsProfileDropdownOpen(false);
+                          onOpenSettings('feedback');
+                        }}
+                        className="w-full flex items-center gap-2.5 px-4 py-2 text-xs font-semibold hover:opacity-80 transition-opacity text-left touch-target"
+                        role="menuitem"
+                      >
+                        <MessageSquare className="w-4 h-4 text-[var(--color-accent-primary)]" />
+                        <span>Feedback & Suggestions</span>
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          setIsProfileDropdownOpen(false);
                           onOpenSettings();
                         }}
                         className="w-full flex items-center gap-2.5 px-4 py-2 text-xs font-semibold hover:opacity-80 transition-opacity text-left touch-target"
@@ -445,6 +475,23 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onOpenS
               </button>
             );
           })}
+
+          {/* Feedback & Suggestion Box in Mobile Drawer */}
+          <button
+            onClick={() => {
+              setIsMobileMenuOpen(false);
+              onOpenSettings('feedback');
+            }}
+            className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-xs font-bold transition-colors touch-target border"
+            style={{
+              backgroundColor: 'var(--color-accent-subtle)',
+              borderColor: 'var(--color-border-default)',
+              color: 'var(--color-accent-subtle-text)'
+            }}
+          >
+            <MessageSquare className="w-4 h-4 text-[var(--color-accent-primary)]" />
+            <span>Suggestion Box & Feedback</span>
+          </button>
 
           <div className="pt-3 border-t flex gap-2" style={{ borderColor: 'var(--color-border-default)' }}>
             <button

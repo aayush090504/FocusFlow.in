@@ -10,7 +10,8 @@ import {
   Play, 
   X,
   Flame,
-  Settings
+  Settings,
+  MessageSquare
 } from 'lucide-react';
 import { ActiveTab } from '../../types';
 import { useStudy } from '../../context/StudyContext';
@@ -18,7 +19,7 @@ import { useStudy } from '../../context/StudyContext';
 interface MobileBottomNavProps {
   activeTab: ActiveTab;
   setActiveTab: (tab: ActiveTab) => void;
-  onOpenSettings: () => void;
+  onOpenSettings: (tab?: 'profile' | 'themes' | 'goals' | 'notifications' | 'pomodoro' | 'account' | 'feedback') => void;
 }
 
 export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
@@ -170,6 +171,40 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
                   <div className="font-bold">Set Goal</div>
                   <div className="text-[10px] text-slate-400 font-normal">Target & Milestone</div>
                 </div>
+              </button>
+            </div>
+
+            {/* Quick Action Suggestion Box Button */}
+            <div className="pt-2 border-t" style={{ borderColor: 'var(--color-border-default)' }}>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsQuickActionOpen(false);
+                  onOpenSettings('feedback');
+                }}
+                className="w-full flex items-center justify-between p-2.5 rounded-xl border text-xs font-bold transition-all active:scale-95 cursor-pointer"
+                style={{
+                  backgroundColor: 'var(--color-accent-subtle)',
+                  borderColor: 'var(--color-border-default)',
+                  color: 'var(--color-accent-subtle-text)'
+                }}
+              >
+                <div className="flex items-center gap-2.5">
+                  <div 
+                    className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" 
+                    style={{ 
+                      backgroundColor: 'var(--color-accent-primary)', 
+                      color: 'var(--color-accent-fg)' 
+                    }}
+                  >
+                    <MessageSquare className="w-3.5 h-3.5" />
+                  </div>
+                  <div className="text-left">
+                    <div className="font-bold">Suggestion Box & Feedback</div>
+                    <div className="text-[10px] opacity-75 font-normal">Report bugs or suggest features</div>
+                  </div>
+                </div>
+                <span className="text-[11px] font-bold underline">Open</span>
               </button>
             </div>
           </div>

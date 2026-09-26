@@ -140,9 +140,28 @@
         "updatedAt": { "type": "string", "format": "date-time" }
       },
       "required": ["id", "userId", "title", "targetValue", "unit", "status"]
+    },
+    "Feedback": {
+      "title": "Feedback",
+      "description": "User feedback, bug reports, complaints, and feature suggestions",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "type": { "type": "string", "enum": ["bug_report", "problem_complaint", "feature_suggestion", "general_feedback"] },
+        "message": { "type": "string", "minLength": 5, "maxLength": 2000 },
+        "email": { "type": "string", "maxLength": 254 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "status": { "type": "string", "enum": ["new", "reviewed", "resolved"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "type", "message", "status"]
     }
   },
   "firestore": {
+    "/feedback/{feedbackId}": {
+      "schema": { "$ref": "#/entities/Feedback" },
+      "description": "User feedback, bug reports, and suggestions"
+    },
     "/users/{userId}": {
       "schema": { "$ref": "#/entities/UserProfile" },
       "description": "User profile with study settings and goals"
