@@ -21,7 +21,9 @@ import {
   CheckCircle2,
   Eye,
   EyeOff,
-  MessageSquare
+  MessageSquare,
+  Compass,
+  HelpCircle
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
@@ -35,6 +37,7 @@ interface SettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
   initialTab?: 'profile' | 'themes' | 'goals' | 'notifications' | 'pomodoro' | 'account' | 'feedback';
+  onReplayOnboarding?: () => void;
 }
 
 const AVATAR_OPTIONS = [
@@ -51,7 +54,8 @@ const AVATAR_OPTIONS = [
 export const SettingsModal: React.FC<SettingsModalProps> = ({ 
   isOpen, 
   onClose,
-  initialTab = 'profile'
+  initialTab = 'profile',
+  onReplayOnboarding
 }) => {
   const { 
     user, 
@@ -546,6 +550,53 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   Give Feedback
                 </button>
               </div>
+
+              {/* Onboarding Guide Walkthrough Replay Card */}
+              {onReplayOnboarding && (
+                <div 
+                  className="p-4 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-3"
+                  style={{
+                    backgroundColor: 'var(--color-bg-subtle)',
+                    borderColor: 'var(--color-border-default)'
+                  }}
+                >
+                  <div className="flex items-center gap-3">
+                    <div 
+                      className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+                      style={{
+                        backgroundColor: 'var(--color-accent-subtle)',
+                        color: 'var(--color-accent-subtle-text)'
+                      }}
+                    >
+                      <Compass className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-bold" style={{ color: 'var(--color-text-primary)' }}>
+                        First-Time Onboarding Tour
+                      </h4>
+                      <p className="text-[11px]" style={{ color: 'var(--color-text-secondary)' }}>
+                        Revisit the 6-step walkthrough of subjects, tasks, planner, focus timer, and progress anytime.
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClose();
+                      onReplayOnboarding();
+                    }}
+                    className="px-3 py-1.5 rounded-lg border text-xs font-bold hover:opacity-85 transition-opacity shrink-0 self-start sm:self-auto cursor-pointer flex items-center gap-1.5"
+                    style={{
+                      borderColor: 'var(--color-border-default)',
+                      backgroundColor: 'var(--color-bg-surface)',
+                      color: 'var(--color-text-primary)'
+                    }}
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                    <span>Replay Tour</span>
+                  </button>
+                </div>
+              )}
             </form>
           )}
 
@@ -1485,6 +1536,45 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   </button>
                 </div>
               </div>
+
+              {/* Help & Onboarding Guide */}
+              {onReplayOnboarding && (
+                <div>
+                  <h4 className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: 'var(--color-text-secondary)' }}>
+                    Help & Guidance
+                  </h4>
+                  <div 
+                    className="flex items-center justify-between p-4 rounded-xl border"
+                    style={{
+                      backgroundColor: 'var(--color-bg-subtle)',
+                      borderColor: 'var(--color-border-default)'
+                    }}
+                  >
+                    <div>
+                      <div className="text-xs font-bold">Replay Onboarding Guide</div>
+                      <div className="text-[11px]" style={{ color: 'var(--color-text-secondary)' }}>
+                        Walk through the core features of Focus Flow. Does not affect your saved study data or progress.
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onClose();
+                        onReplayOnboarding();
+                      }}
+                      className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl border text-xs font-bold transition-colors cursor-pointer hover:opacity-90 shrink-0 shadow-2xs"
+                      style={{
+                        borderColor: 'var(--color-border-default)',
+                        backgroundColor: 'var(--color-bg-surface)',
+                        color: 'var(--color-text-primary)'
+                      }}
+                    >
+                      <Compass className="w-3.5 h-3.5 text-[var(--color-accent-primary)]" />
+                      <span>Replay Tour</span>
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {/* Sign Out Button */}
               <div>

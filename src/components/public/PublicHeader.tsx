@@ -1,5 +1,6 @@
 import React from 'react';
-import { Sparkles, ArrowRight, BookOpen, Clock, Calendar, Shield, Flame } from 'lucide-react';
+import { ArrowRight, BookOpen, Clock, Calendar, Shield, Flame } from 'lucide-react';
+import { TimerLogoSvg } from '../common/BrandLogo';
 
 interface PublicHeaderProps {
   currentPath: string;
@@ -23,7 +24,7 @@ export const PublicHeader: React.FC<PublicHeaderProps> = ({
           className="flex items-center gap-3 text-left group transition-all"
         >
           <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center shadow-lg shadow-indigo-500/25 border border-indigo-400/20 group-hover:scale-105 transition-transform">
-            <Sparkles className="w-5 h-5 text-white" />
+            <TimerLogoSvg className="w-5 h-5 text-white" />
           </div>
           <div>
             <div className="flex items-center gap-2">

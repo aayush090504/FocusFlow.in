@@ -34,6 +34,7 @@ interface AuthContextType {
   updateNotifications: (settings: NotificationSettings) => Promise<void>;
   updatePomodoroSettings: (settings: PomodoroSettings) => Promise<void>;
   changePassword: (newPass: string) => Promise<void>;
+  completeOnboarding: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 }
 
@@ -129,14 +130,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           streakCount: streak,
           pomodoroSettings: data.pomodoroSettings || DEFAULT_POMODORO_SETTINGS,
           notificationSettings: data.notificationSettings || defaultNotifications,
-          soundSettings: data.soundSettings,
-          gamification: data.gamification,
           lastActiveDate: data.lastActiveDate || today,
+          hasCompletedOnboarding: data.hasCompletedOnboarding !== undefined ? data.hasCompletedOnboarding : true,
           createdAt: data.createdAt || new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         };
 
-        await setDoc(userDocRef, updatedProfile, { merge: true });
+        if (data.soundSettings !== undefined) {
+          updatedProfile.soundSettings = data.soundSettings;
+        }
+        if (data.gamification !== undefined) {
+          updatedProfile.gamification = data.gamification;
+        }
+        if (data.onboardingCompletedAt !== undefined) {
+          updatedProfile.onboardingCompletedAt = data.onboardingCompletedAt;
+        }
+
+        // Clean any undefined keys before passing to Firestore setDoc
+        const payloadToSave: Record<string, any> = {};
+        for (const [key, val] of Object.entries(updatedProfile)) {
+          if (val !== undefined) {
+            payloadToSave[key] = val;
+          }
+        }
+
+        await setDoc(userDocRef, payloadToSave, { merge: true });
         setUserProfile(updatedProfile);
       } else {
         // Create initial default profile for new user
@@ -152,6 +170,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           pomodoroSettings: DEFAULT_POMODORO_SETTINGS,
           notificationSettings: defaultNotifications,
           lastActiveDate: today,
+          hasCompletedOnboarding: false,
           gamification: {
             totalXp: 0,
             level: 1,
@@ -169,7 +188,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           updatedAt: new Date().toISOString(),
         };
 
-        await setDoc(userDocRef, initialProfile);
+        const initialPayload: Record<string, any> = {};
+        for (const [key, val] of Object.entries(initialProfile)) {
+          if (val !== undefined) {
+            initialPayload[key] = val;
+          }
+        }
+
+        await setDoc(userDocRef, initialPayload);
         setUserProfile(initialProfile);
       }
     } catch (err) {
@@ -388,6 +414,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const completeOnboarding = async () => {
+    if (!user) return;
+    try {
+      const userDocRef = doc(db, 'users', user.uid);
+      const now = new Date().toISOString();
+      await updateDoc(userDocRef, {
+        hasCompletedOnboarding: true,
+        onboardingCompletedAt: now,
+        updatedAt: now
+      });
+      setUserProfile(prev => prev ? {
+        ...prev,
+        hasCompletedOnboarding: true,
+        onboardingCompletedAt: now,
+        updatedAt: now
+      } : null);
+    } catch (err) {
+      handleFirestoreError(err, OperationType.UPDATE, `users/${user.uid}`);
+    }
+  };
+
   const refreshProfile = async () => {
     if (user) {
       await syncUserProfile(user);
@@ -415,6 +462,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         updateNotifications,
         updatePomodoroSettings,
         changePassword,
+        completeOnboarding,
         refreshProfile,
       }}
     >

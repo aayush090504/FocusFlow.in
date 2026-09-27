@@ -18,8 +18,10 @@ import {
   Keyboard,
   Trophy,
   Zap,
-  MessageSquare
+  MessageSquare,
+  Compass
 } from 'lucide-react';
+import { TimerLogoSvg } from '../common/BrandLogo';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useStudy } from '../../context/StudyContext';
@@ -31,6 +33,7 @@ interface NavbarProps {
   setActiveTab: (tab: ActiveTab) => void;
   onOpenSettings: (tab?: 'profile' | 'themes' | 'goals' | 'notifications' | 'pomodoro' | 'account' | 'feedback') => void;
   onOpenShortcuts?: () => void;
+  onReplayOnboarding?: () => void;
 }
 
 const AVATAR_MAP: Record<string, { emoji: string; bg: string }> = {
@@ -44,7 +47,13 @@ const AVATAR_MAP: Record<string, { emoji: string; bg: string }> = {
   'avatar-8': { emoji: '🧘', bg: 'bg-teal-600' },
 };
 
-export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onOpenSettings, onOpenShortcuts }) => {
+export const Navbar: React.FC<NavbarProps> = ({ 
+  activeTab, 
+  setActiveTab, 
+  onOpenSettings, 
+  onOpenShortcuts,
+  onReplayOnboarding 
+}) => {
   const { userProfile, logout } = useAuth();
   const { theme, themeInfo } = useTheme();
   const { 
@@ -66,6 +75,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onOpenS
 
   const goalMinutes = userProfile?.dailyGoalMinutes || 120;
   const goalPercentage = Math.min(100, Math.round((todayStudyMinutes / goalMinutes) * 100));
+  const xpLeft = Math.max(0, levelInfo.xpRequiredForCurrentLevel - levelInfo.xpInCurrentLevel);
   const streakCount = userProfile?.streakCount || 1;
   const avatarKey = userProfile?.avatar || 'avatar-1';
   const avatarInfo = AVATAR_MAP[avatarKey] || AVATAR_MAP['avatar-1'];
@@ -89,8 +99,8 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onOpenS
         color: 'var(--color-text-primary)'
       }}
     >
-      <div className="max-w-7xl mx-auto px-2.5 sm:px-4 lg:px-8">
-        <div className="flex items-center justify-between h-14 sm:h-16 gap-2 sm:gap-4">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-14 sm:h-16 gap-3 sm:gap-6">
           {/* Left: Brand & Responsive Navigation */}
           <div className="flex items-center gap-2 sm:gap-4 lg:gap-6 min-w-0">
             <button 
@@ -105,22 +115,12 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onOpenS
                   color: 'var(--color-accent-fg)'
                 }}
               >
-                <Sparkles className="w-4 h-4 sm:w-5 sm:h-5" />
+                <TimerLogoSvg className="w-4 h-4 sm:w-5 sm:h-5" />
               </div>
               <div className="flex flex-col min-w-0">
                 <div className="flex items-center gap-1.5">
                   <span className="font-bold tracking-tight text-sm sm:text-base leading-none whitespace-nowrap" style={{ color: 'var(--color-text-primary)' }}>
                     Focus Flow
-                  </span>
-                  <span 
-                    className="hidden xl:inline-block text-[10px] font-bold px-1.5 py-0.5 rounded border leading-none"
-                    style={{
-                      backgroundColor: 'var(--color-accent-subtle)',
-                      borderColor: 'var(--color-border-default)',
-                      color: 'var(--color-accent-subtle-text)'
-                    }}
-                  >
-                    focusflow.in
                   </span>
                 </div>
                 <span className="hidden sm:block text-[10px] font-medium leading-none mt-0.5" style={{ color: 'var(--color-text-secondary)' }}>
@@ -129,8 +129,8 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onOpenS
               </div>
             </button>
 
-            {/* Desktop / Laptop Navigation Links */}
-            <nav aria-label="Main Navigation" className="hidden md:flex items-center gap-1 lg:gap-1.5 shrink-0">
+            {/* Desktop / Laptop Navigation Links - Symbols only */}
+            <nav aria-label="Main Navigation" className="hidden md:flex items-center gap-1 sm:gap-1.5 shrink-0">
               {navItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = activeTab === item.id;
@@ -138,48 +138,51 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onOpenS
                   <button
                     key={item.id}
                     onClick={() => setActiveTab(item.id)}
-                    className={`flex items-center gap-1.5 p-2 lg:px-2.5 lg:py-1.5 xl:px-3 xl:py-2 rounded-lg text-xs transition-all touch-target shrink-0 ${
-                      isActive ? 'font-bold shadow-2xs' : 'font-semibold hover:opacity-80'
+                    className={`p-2 sm:p-2.5 rounded-xl transition-all touch-target shrink-0 flex items-center justify-center cursor-pointer ${
+                      isActive ? 'font-bold shadow-2xs scale-105' : 'hover:opacity-80 hover:bg-black/5 dark:hover:bg-white/5'
                     }`}
                     style={{
                       backgroundColor: isActive ? 'var(--color-accent-subtle)' : 'transparent',
-                      color: isActive ? 'var(--color-accent-subtle-text)' : 'var(--color-text-secondary)'
+                      color: isActive ? 'var(--color-accent-primary)' : 'var(--color-text-secondary)'
                     }}
                     title={item.label}
                     aria-label={item.label}
                     aria-current={isActive ? 'page' : undefined}
                   >
-                    <Icon className="w-4 h-4 shrink-0" style={{ color: isActive ? 'var(--color-accent-primary)' : 'inherit' }} />
-                    <span className="hidden xl:inline">{item.label}</span>
-                    <span className="hidden lg:inline xl:hidden">{item.shortLabel}</span>
+                    <Icon className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" style={{ color: isActive ? 'var(--color-accent-primary)' : 'inherit' }} />
                   </button>
                 );
               })}
             </nav>
           </div>
 
-          {/* Right: Quick actions, Streak, and User menu */}
-          <div className="flex items-center gap-1.5 sm:gap-2 lg:gap-2.5 shrink-0 ml-auto">
-            {/* Gamification Level & XP Chip (Hidden on mobile to avoid header crowding, visible on laptop/tablet/desktop) */}
+          {/* Guaranteed open breathing space in the upper HUD regardless of screen size */}
+          <div className="flex-1 min-w-[20px] sm:min-w-[40px] md:min-w-[60px]" aria-hidden="true" />
+
+          {/* Right: Quick actions, Streak, Suggestions, and User menu */}
+          <div className="flex items-center gap-1.5 sm:gap-2 lg:gap-2.5 shrink-0">
+            {/* Gamification Level Chip with Lvl & XP Left */}
             <button
               onClick={() => setIsBadgesModalOpen(true)}
-              className="hidden sm:flex items-center gap-1 sm:gap-1.5 px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-lg border text-xs font-bold transition-all hover:scale-105 active:scale-95 touch-target shrink-0"
+              className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs font-bold transition-all hover:scale-105 active:scale-95 touch-target shrink-0 cursor-pointer"
               style={{
                 backgroundColor: 'var(--color-accent-subtle)',
                 borderColor: 'var(--color-border-default)',
                 color: 'var(--color-accent-subtle-text)'
               }}
-              title={`Level ${levelInfo.level}: ${levelInfo.title} (${levelInfo.totalXp} XP) - Click to view achievements`}
-              aria-label={`Scholar Level ${levelInfo.level}, ${levelInfo.totalXp} total XP, ${levelInfo.progressPercent}% to next level. Open Achievements.`}
+              title={`Level ${levelInfo.level}: ${levelInfo.title} (${levelInfo.totalXp} XP, ${xpLeft} XP until Level ${levelInfo.nextLevel}) - Click to view achievements`}
+              aria-label={`Level ${levelInfo.level}, ${xpLeft} XP left to next level. Open Achievements.`}
             >
               <Zap className="w-3.5 h-3.5 fill-current shrink-0" style={{ color: 'var(--color-accent-primary)' }} />
               <span>Lvl {levelInfo.level}</span>
-              <span className="hidden xl:inline opacity-75 font-mono text-[11px]">• {levelInfo.totalXp} XP</span>
+              <span className="opacity-75 font-mono text-[11px] font-semibold">
+                • {xpLeft} XP left
+              </span>
             </button>
 
             {/* Streak Badge */}
             <div 
-              className="flex items-center gap-1 sm:gap-1.5 px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-lg border text-xs font-bold cursor-default shrink-0"
+              className="flex items-center gap-1 px-2 py-1.5 rounded-xl border text-xs font-bold cursor-default shrink-0"
               style={{
                 backgroundColor: 'rgba(245, 158, 11, 0.12)',
                 borderColor: 'rgba(245, 158, 11, 0.3)',
@@ -188,54 +191,14 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onOpenS
               title={`${streakCount} day study streak!`}
               aria-label={`${streakCount} day continuous study streak`}
             >
-              <Flame className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-500 fill-amber-500 shrink-0" />
+              <Flame className="w-4 h-4 text-amber-500 fill-amber-500 shrink-0" />
               <span>{streakCount}</span>
-              <span className="hidden sm:inline">{streakCount === 1 ? ' day' : ' days'}</span>
-              <span className="sm:hidden">d</span>
             </div>
-
-            {/* Keyboard Shortcuts Trigger Button */}
-            {onOpenShortcuts && (
-              <button
-                onClick={onOpenShortcuts}
-                className="hidden xl:flex items-center gap-1 p-2 rounded-xl border transition-all hover:opacity-90 touch-target"
-                style={{
-                  backgroundColor: 'var(--color-bg-subtle)',
-                  borderColor: 'var(--color-border-default)',
-                  color: 'var(--color-text-secondary)'
-                }}
-                title="Keyboard Shortcuts (?)"
-                aria-label="View Keyboard Shortcuts"
-              >
-                <Keyboard className="w-4 h-4" />
-                <kbd className="text-[10px] font-mono px-1 rounded bg-black/10 dark:bg-white/10">?</kbd>
-              </button>
-            )}
-
-            {/* Quick Action Button: Focus Now */}
-            <button
-              onClick={() => {
-                if (activeTimer.isRunning) {
-                  setIsTimerModalOpen(true);
-                } else {
-                  startTimer('pomodoro', 25);
-                }
-              }}
-              className="hidden xl:flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold shadow-xs transition-all active:scale-95 touch-target"
-              style={{
-                backgroundColor: 'var(--color-accent-primary)',
-                color: 'var(--color-accent-fg)'
-              }}
-              aria-label="Start Pomodoro Study Session"
-            >
-              <Play className="w-3.5 h-3.5 fill-current" />
-              <span>Start Focus</span>
-            </button>
 
             {/* Prominent Feedback / Suggestion Box Trigger in Upper HUD */}
             <button
               onClick={() => onOpenSettings('feedback')}
-              className="flex items-center gap-1.5 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-xl border text-xs font-bold transition-all hover:scale-105 active:scale-95 touch-target shadow-2xs shrink-0 cursor-pointer"
+              className="p-2 sm:p-2.5 rounded-xl border text-xs font-bold transition-all hover:scale-105 active:scale-95 touch-target shadow-2xs shrink-0 cursor-pointer flex items-center justify-center"
               style={{
                 backgroundColor: 'var(--color-accent-subtle)',
                 borderColor: 'var(--color-border-default)',
@@ -244,20 +207,19 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onOpenS
               title="Open Suggestion Box & Feedback"
               aria-label="Open Suggestion Box & Feedback"
             >
-              <MessageSquare className="w-3.5 h-3.5 text-[var(--color-accent-primary)]" />
-              <span className="hidden sm:inline">Suggestions</span>
-              <span className="sm:hidden text-[11px]">Feedback</span>
+              <MessageSquare className="w-4 h-4 text-[var(--color-accent-primary)]" />
             </button>
 
-            {/* User Profile Menu */}
+            {/* User Profile Menu with Name on right */}
             <div className="relative shrink-0">
               <button
                 onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
-                className="flex items-center gap-1.5 sm:gap-2 p-1 sm:p-1.5 rounded-xl border transition-all hover:opacity-90 touch-target"
+                className="flex items-center gap-1.5 sm:gap-2 p-1 sm:p-1.5 pr-2 sm:pr-2.5 rounded-xl border transition-all hover:opacity-90 touch-target cursor-pointer"
                 style={{
                   backgroundColor: 'var(--color-bg-subtle)',
                   borderColor: 'var(--color-border-default)'
                 }}
+                title={userProfile?.displayName || 'User Account Menu'}
                 aria-label="User Account Menu"
                 aria-haspopup="true"
                 aria-expanded={isProfileDropdownOpen}
@@ -265,7 +227,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onOpenS
                 <div className={`w-6 h-6 sm:w-7 sm:h-7 rounded-lg ${avatarInfo.bg} text-white flex items-center justify-center text-xs sm:text-sm shadow-2xs shrink-0`}>
                   {avatarInfo.emoji}
                 </div>
-                <span className="inline-block text-xs font-bold max-w-[65px] xs:max-w-[85px] sm:max-w-[110px] truncate" style={{ color: 'var(--color-text-primary)' }}>
+                <span className="text-xs font-bold max-w-[70px] xs:max-w-[90px] sm:max-w-[120px] truncate" style={{ color: 'var(--color-text-primary)' }}>
                   {userProfile?.displayName?.split(' ')[0] || userProfile?.displayName || 'Student'}
                 </span>
               </button>
@@ -382,6 +344,20 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onOpenS
                         >
                           <Keyboard className="w-4 h-4" style={{ color: 'var(--color-text-secondary)' }} />
                           <span>Keyboard Shortcuts</span>
+                        </button>
+                      )}
+
+                      {onReplayOnboarding && (
+                        <button
+                          onClick={() => {
+                            setIsProfileDropdownOpen(false);
+                            onReplayOnboarding();
+                          }}
+                          className="w-full flex items-center gap-2.5 px-4 py-2 text-xs font-semibold hover:opacity-80 transition-opacity text-left touch-target"
+                          role="menuitem"
+                        >
+                          <Compass className="w-4 h-4 text-[var(--color-accent-primary)]" />
+                          <span>Onboarding Tour</span>
                         </button>
                       )}
 

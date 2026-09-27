@@ -33,8 +33,9 @@ import { TaskModal } from './components/tasks/TaskModal';
 import { SubjectModal } from './components/subjects/SubjectModal';
 import { GoalModal } from './components/goals/GoalModal';
 import { SettingsModal } from './components/settings/SettingsModal';
+import { OnboardingModal } from './components/onboarding/OnboardingModal';
 import { ActiveTab } from './types';
-import { Sparkles } from 'lucide-react';
+import { TimerLogoSvg } from './components/common/BrandLogo';
 
 const MainAppContent: React.FC = () => {
   const { user, loading } = useAuth();
@@ -89,7 +90,7 @@ const MainAppContent: React.FC = () => {
     return (
       <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-4">
         <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center shadow-lg shadow-indigo-500/30 animate-bounce mb-4">
-          <Sparkles className="w-6 h-6 text-white" />
+          <TimerLogoSvg className="w-6 h-6 text-white" />
         </div>
         <h2 className="text-base font-bold text-white tracking-tight">Focus Flow</h2>
         <p className="text-xs text-slate-400 mt-1">Preparing your student workspace...</p>
@@ -299,7 +300,32 @@ const AuthenticatedWorkspace: React.FC<AuthenticatedWorkspaceProps> = ({
     todayStudyMinutes
   } = useStudy();
   
-  const { userProfile } = useAuth();
+  const { userProfile, completeOnboarding } = useAuth();
+  const [isOnboardingModalOpen, setIsOnboardingModalOpen] = useState(false);
+  const [isOnboardingReplay, setIsOnboardingReplay] = useState(false);
+  const [hasDismissedOnboardingLocally, setHasDismissedOnboardingLocally] = useState(false);
+
+  // Automatically trigger first-time onboarding for newly created accounts (hasCompletedOnboarding === false)
+  useEffect(() => {
+    if (userProfile && userProfile.hasCompletedOnboarding === false && !hasDismissedOnboardingLocally) {
+      setIsOnboardingReplay(false);
+      setIsOnboardingModalOpen(true);
+    }
+  }, [userProfile, hasDismissedOnboardingLocally]);
+
+  const handleCloseOnboarding = async (completed: boolean) => {
+    setIsOnboardingModalOpen(false);
+    setHasDismissedOnboardingLocally(true);
+    if (!isOnboardingReplay) {
+      await completeOnboarding();
+    }
+  };
+
+  const handleReplayOnboarding = () => {
+    setIsOnboardingReplay(true);
+    setIsOnboardingModalOpen(true);
+  };
+
   const { 
     isBadgesModalOpen, 
     setIsBadgesModalOpen, 
@@ -440,6 +466,7 @@ const AuthenticatedWorkspace: React.FC<AuthenticatedWorkspaceProps> = ({
         setActiveTab={setActiveTab}
         onOpenSettings={onOpenSettings}
         onOpenShortcuts={() => setIsShortcutsModalOpen(true)}
+        onReplayOnboarding={handleReplayOnboarding}
       />
 
       {/* Main Container */}
@@ -485,6 +512,7 @@ const AuthenticatedWorkspace: React.FC<AuthenticatedWorkspaceProps> = ({
         isOpen={isSettingsModalOpen}
         onClose={onCloseSettings}
         initialTab={settingsInitialTab}
+        onReplayOnboarding={handleReplayOnboarding}
       />
 
       <AccessibilityShortcutsModal
@@ -493,6 +521,14 @@ const AuthenticatedWorkspace: React.FC<AuthenticatedWorkspaceProps> = ({
       />
 
       <BadgesModal />
+
+      <OnboardingModal
+        isOpen={isOnboardingModalOpen}
+        onClose={handleCloseOnboarding}
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        isReplay={isOnboardingReplay}
+      />
 
       {/* Mobile Bottom Navigation Bar */}
       <MobileBottomNav

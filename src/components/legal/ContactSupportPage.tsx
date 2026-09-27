@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { 
   Mail, 
   ArrowLeft, 
-  Sparkles, 
   MessageSquare, 
   Send, 
   CheckCircle2, 
@@ -11,6 +10,7 @@ import {
   Clock, 
   ShieldCheck 
 } from 'lucide-react';
+import { TimerLogoSvg } from '../common/BrandLogo';
 import { SEOHead } from '../seo/SEOHead';
 import { sanitizeInput, isValidEmail } from '../../utils/securityUtils';
 
@@ -108,7 +108,7 @@ export const ContactSupportPage: React.FC<ContactSupportPageProps> = ({ onBack, 
             </button>
             <div className="flex items-center gap-2 pl-2 border-l border-slate-800">
               <div className="w-7 h-7 rounded-lg bg-indigo-600 flex items-center justify-center text-white">
-                <Sparkles className="w-4 h-4" />
+                <TimerLogoSvg className="w-4 h-4" />
               </div>
               <span className="font-bold text-white text-sm hidden sm:inline">Focus Flow</span>
             </div>

@@ -32,6 +32,7 @@ import {
 } from 'lucide-react';
 import { ThemeMode } from '../../types';
 import { THEMES } from '../../context/ThemeContext';
+import { TimerLogoSvg } from '../common/BrandLogo';
 import { SEOHead } from '../seo/SEOHead';
 
 interface LandingPageProps {
@@ -150,7 +151,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLogin,
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center shadow-lg shadow-indigo-500/25 border border-indigo-400/20">
-              <Sparkles className="w-5 h-5 text-white" />
+              <TimerLogoSvg className="w-5 h-5 text-white" />
             </div>
             <div className="flex items-center gap-2">
               <span className="text-xl font-extrabold tracking-tight text-white">Focus Flow</span>
@@ -981,7 +982,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLogin,
       <section className="py-20 relative overflow-hidden border-t border-slate-800/80 bg-gradient-to-b from-slate-900 to-slate-950">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
           <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-indigo-600/20 border border-indigo-500/30 text-indigo-400 mb-6 shadow-xl">
-            <Sparkles className="w-7 h-7 text-indigo-400" />
+            <TimerLogoSvg className="w-7 h-7 text-indigo-400" />
           </div>
 
           <h2 className="text-3xl sm:text-5xl font-black text-white tracking-tight mb-4">
@@ -1024,7 +1025,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLogin,
             <div className="space-y-3 sm:col-span-2">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white">
-                  <Sparkles className="w-4 h-4" />
+                  <TimerLogoSvg className="w-4 h-4" />
                 </div>
                 <span className="text-base font-bold text-white">Focus Flow</span>
               </div>

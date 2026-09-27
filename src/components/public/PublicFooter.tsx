@@ -1,5 +1,6 @@
 import React from 'react';
-import { Sparkles, ShieldCheck, ArrowRight, BookOpen, Clock, Calendar, Flame, Shield } from 'lucide-react';
+import { ShieldCheck, ArrowRight, BookOpen, Clock, Calendar, Flame, Shield } from 'lucide-react';
+import { TimerLogoSvg } from '../common/BrandLogo';
 
 interface PublicFooterProps {
   onNavigate: (path: string) => void;
@@ -20,7 +21,7 @@ export const PublicFooter: React.FC<PublicFooterProps> = ({
           <div className="space-y-3 sm:col-span-2">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white">
-                <Sparkles className="w-4 h-4" />
+                <TimerLogoSvg className="w-4 h-4" />
               </div>
               <span className="text-base font-bold text-white">Focus Flow</span>
             </div>

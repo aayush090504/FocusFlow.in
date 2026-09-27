@@ -8,9 +8,9 @@ import {
   UserCheck, 
   Globe, 
   Mail, 
-  Sparkles,
   ExternalLink
 } from 'lucide-react';
+import { TimerLogoSvg } from '../common/BrandLogo';
 import { SEOHead } from '../seo/SEOHead';
 
 interface PrivacyPolicyPageProps {
@@ -69,7 +69,7 @@ export const PrivacyPolicyPage: React.FC<PrivacyPolicyPageProps> = ({ onBack, on
             </button>
             <div className="flex items-center gap-2 pl-2 border-l border-slate-800">
               <div className="w-7 h-7 rounded-lg bg-indigo-600 flex items-center justify-center text-white">
-                <Sparkles className="w-4 h-4" />
+                <TimerLogoSvg className="w-4 h-4" />
               </div>
               <span className="font-bold text-white text-sm hidden sm:inline">Focus Flow</span>
             </div>

@@ -74,6 +74,8 @@ export interface UserProfile {
   soundSettings?: SoundSettings;
   gamification?: import('./gamification').GamificationProfile;
   lastActiveDate?: string; // YYYY-MM-DD
+  hasCompletedOnboarding?: boolean;
+  onboardingCompletedAt?: string;
   createdAt?: string;
   updatedAt?: string;
 }

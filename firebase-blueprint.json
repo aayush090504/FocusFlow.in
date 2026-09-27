@@ -61,6 +61,8 @@
             "lastMilestoneCheck": { "type": "string", "maxLength": 50 }
           }
         },
+        "hasCompletedOnboarding": { "type": "boolean" },
+        "onboardingCompletedAt": { "type": "string", "maxLength": 50 },
         "createdAt": { "type": "string", "format": "date-time" },
         "updatedAt": { "type": "string", "format": "date-time" }
       },

@@ -17,6 +17,7 @@ import {
   Check,
   ArrowLeft
 } from 'lucide-react';
+import { TimerLogoSvg } from '../common/BrandLogo';
 import { useAuth } from '../../context/AuthContext';
 import { SEOHead } from '../seo/SEOHead';
 
@@ -145,7 +146,7 @@ export const AuthView: React.FC<AuthViewProps> = ({
         {/* Brand identity */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-tr from-indigo-600 to-violet-500 shadow-xl shadow-indigo-500/20 mb-4 border border-indigo-400/20">
-            <Sparkles className="w-7 h-7 text-white" />
+            <TimerLogoSvg className="w-7 h-7 text-white" />
           </div>
           <div className="flex items-center justify-center gap-2 mb-1">
             <h1 className="text-3xl font-extrabold text-white tracking-tight">

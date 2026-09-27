@@ -7,7 +7,7 @@
     </linearGradient>
     <linearGradient id="ff-glow" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="#ffffff" stop-opacity="0.3" />
-      <stop offset="100%" stop-color="#ffffff" stop-opacity="0" />
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0.8" />
     </linearGradient>
   </defs>
 
@@ -15,17 +15,22 @@
   <rect width="48" height="48" rx="12" fill="url(#ff-grad)" />
   <rect x="1" y="1" width="46" height="46" rx="11" stroke="url(#ff-glow)" stroke-width="1.5" fill="none" />
 
-  <!-- Focus Flow Sparkles Brand Icon (centered in 48x48 viewport) -->
-  <g transform="translate(6, 6) scale(1.5)" fill="none">
-    <!-- Primary 4-pointed Sparkle Star -->
-    <path 
-      d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z" 
-      fill="#ffffff" 
-    />
-    <!-- Top-Right Secondary Sparkle -->
-    <path d="M20 2v4" stroke="#e0e7ff" stroke-width="2" stroke-linecap="round" />
-    <path d="M22 4h-4" stroke="#e0e7ff" stroke-width="2" stroke-linecap="round" />
-    <!-- Bottom-Left Focus Dot -->
-    <circle cx="4" cy="20" r="2" fill="#38bdf8" />
+  <!-- Focus Flow Timer Brand Icon (centered in 48x48 viewport) -->
+  <g transform="translate(24, 26)" stroke="#ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <!-- Top crown / button -->
+    <line x1="-5" y1="-18" x2="5" y2="-18" />
+    <line x1="0" y1="-18" x2="0" y2="-13" />
+    <!-- Secondary lap pusher -->
+    <line x1="10" y1="-14" x2="7.5" y2="-11.5" stroke-width="2.5" />
+    
+    <!-- Circular timer body -->
+    <circle cx="0" cy="0" r="13" />
+    
+    <!-- Timer active clock hands (12:00 up and 2:15 flow angle) -->
+    <line x1="0" y1="0" x2="0" y2="-7.5" stroke-width="3.2" />
+    <line x1="0" y1="0" x2="5.5" y2="-3" stroke-width="3.2" />
+    
+    <!-- Center pivot point -->
+    <circle cx="0" cy="0" r="1.8" fill="#ffffff" stroke="none" />
   </g>
 </svg>
