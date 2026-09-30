@@ -99,17 +99,17 @@ export const Navbar: React.FC<NavbarProps> = ({
         color: 'var(--color-text-primary)'
       }}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-14 sm:h-16 gap-3 sm:gap-6">
+      <div className="max-w-7xl mx-auto px-2.5 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-14 sm:h-16 gap-1.5 sm:gap-6">
           {/* Left: Brand & Responsive Navigation */}
-          <div className="flex items-center gap-2 sm:gap-4 lg:gap-6 min-w-0">
+          <div className="flex items-center gap-1.5 sm:gap-4 lg:gap-6 min-w-0 shrink-0">
             <button 
               onClick={() => setActiveTab('dashboard')}
-              className="flex items-center gap-2 sm:gap-2.5 group text-left cursor-pointer focus-visible:ring-2 rounded-xl p-0.5 sm:p-1 shrink-0"
+              className="flex items-center gap-1.5 sm:gap-2.5 group text-left cursor-pointer focus-visible:ring-2 rounded-xl p-0.5 sm:p-1 shrink-0"
               aria-label="Focus Flow - Return to Dashboard"
             >
               <div 
-                className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center shadow-md group-hover:scale-105 transition-transform shrink-0"
+                className="w-7 h-7 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center shadow-md group-hover:scale-105 transition-transform shrink-0"
                 style={{
                   backgroundColor: 'var(--color-accent-primary)',
                   color: 'var(--color-accent-fg)'
@@ -119,7 +119,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               </div>
               <div className="flex flex-col min-w-0">
                 <div className="flex items-center gap-1.5">
-                  <span className="font-bold tracking-tight text-sm sm:text-base leading-none whitespace-nowrap" style={{ color: 'var(--color-text-primary)' }}>
+                  <span className="font-bold tracking-tight text-xs xs:text-sm sm:text-base leading-none whitespace-nowrap" style={{ color: 'var(--color-text-primary)' }}>
                     Focus Flow
                   </span>
                 </div>
@@ -157,10 +157,10 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
 
           {/* Guaranteed open breathing space in the upper HUD regardless of screen size */}
-          <div className="flex-1 min-w-[20px] sm:min-w-[40px] md:min-w-[60px]" aria-hidden="true" />
+          <div className="flex-1 min-w-[8px] sm:min-w-[40px] md:min-w-[60px]" aria-hidden="true" />
 
           {/* Right: Quick actions, Streak, Suggestions, and User menu */}
-          <div className="flex items-center gap-1.5 sm:gap-2 lg:gap-2.5 shrink-0">
+          <div className="flex items-center gap-1 xs:gap-1.5 sm:gap-2 lg:gap-2.5 shrink-0">
             {/* Gamification Level Chip with Lvl & XP Left */}
             <button
               onClick={() => setIsBadgesModalOpen(true)}
@@ -182,7 +182,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
             {/* Streak Badge */}
             <div 
-              className="flex items-center gap-1 px-2 py-1.5 rounded-xl border text-xs font-bold cursor-default shrink-0"
+              className="flex items-center gap-1 px-1.5 py-1 sm:px-2 sm:py-1.5 rounded-xl border text-xs font-bold cursor-default shrink-0"
               style={{
                 backgroundColor: 'rgba(245, 158, 11, 0.12)',
                 borderColor: 'rgba(245, 158, 11, 0.3)',
@@ -191,14 +191,14 @@ export const Navbar: React.FC<NavbarProps> = ({
               title={`${streakCount} day study streak!`}
               aria-label={`${streakCount} day continuous study streak`}
             >
-              <Flame className="w-4 h-4 text-amber-500 fill-amber-500 shrink-0" />
+              <Flame className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-500 fill-amber-500 shrink-0" />
               <span>{streakCount}</span>
             </div>
 
             {/* Prominent Feedback / Suggestion Box Trigger in Upper HUD */}
             <button
               onClick={() => onOpenSettings('feedback')}
-              className="p-2 sm:p-2.5 rounded-xl border text-xs font-bold transition-all hover:scale-105 active:scale-95 touch-target shadow-2xs shrink-0 cursor-pointer flex items-center justify-center"
+              className="p-1.5 sm:p-2.5 rounded-xl border text-xs font-bold transition-all hover:scale-105 active:scale-95 touch-target shadow-2xs shrink-0 cursor-pointer flex items-center justify-center"
               style={{
                 backgroundColor: 'var(--color-accent-subtle)',
                 borderColor: 'var(--color-border-default)',
@@ -207,14 +207,14 @@ export const Navbar: React.FC<NavbarProps> = ({
               title="Open Suggestion Box & Feedback"
               aria-label="Open Suggestion Box & Feedback"
             >
-              <MessageSquare className="w-4 h-4 text-[var(--color-accent-primary)]" />
+              <MessageSquare className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[var(--color-accent-primary)]" />
             </button>
 
             {/* User Profile Menu with Name on right */}
             <div className="relative shrink-0">
               <button
                 onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
-                className="flex items-center gap-1.5 sm:gap-2 p-1 sm:p-1.5 pr-2 sm:pr-2.5 rounded-xl border transition-all hover:opacity-90 touch-target cursor-pointer"
+                className="flex items-center gap-1 sm:gap-2 p-1 sm:p-1.5 pr-1 xs:pr-2 sm:pr-2.5 rounded-xl border transition-all hover:opacity-90 touch-target cursor-pointer"
                 style={{
                   backgroundColor: 'var(--color-bg-subtle)',
                   borderColor: 'var(--color-border-default)'
@@ -227,7 +227,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <div className={`w-6 h-6 sm:w-7 sm:h-7 rounded-lg ${avatarInfo.bg} text-white flex items-center justify-center text-xs sm:text-sm shadow-2xs shrink-0`}>
                   {avatarInfo.emoji}
                 </div>
-                <span className="text-xs font-bold max-w-[70px] xs:max-w-[90px] sm:max-w-[120px] truncate" style={{ color: 'var(--color-text-primary)' }}>
+                <span className="text-xs font-bold hidden xs:inline-block max-w-[65px] sm:max-w-[120px] truncate" style={{ color: 'var(--color-text-primary)' }}>
                   {userProfile?.displayName?.split(' ')[0] || userProfile?.displayName || 'Student'}
                 </span>
               </button>
@@ -424,7 +424,7 @@ export const Navbar: React.FC<NavbarProps> = ({
       {/* Mobile Menu Drawer */}
       {isMobileMenuOpen && (
         <div 
-          className="md:hidden border-t px-4 pt-3 pb-5 space-y-2"
+          className="md:hidden border-t px-4 pt-3 pb-5 space-y-2 max-h-[calc(100dvh-4rem)] overflow-y-auto overscroll-contain"
           style={{
             backgroundColor: 'var(--color-bg-surface)',
             borderColor: 'var(--color-border-default)'

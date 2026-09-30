@@ -108,12 +108,15 @@ const ToastContainer: React.FC<{
 }> = ({ toasts, onRemove }) => {
   if (toasts.length === 0) return null;
 
+  // On small mobile viewports, display at most the latest 3 notifications to avoid covering controls
+  const visibleToasts = toasts.slice(-3);
+
   return (
     <aside
       aria-label="Notifications"
-      className="fixed bottom-20 md:bottom-6 right-4 sm:right-6 z-[9999] flex flex-col gap-2.5 max-w-sm w-full pointer-events-none"
+      className="fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom,0px))] md:bottom-6 left-3 right-3 sm:left-auto sm:right-6 z-[9999] flex flex-col gap-2 max-w-sm w-auto sm:w-full pointer-events-none"
     >
-      {toasts.map((toast) => {
+      {visibleToasts.map((toast) => {
         const getToastStyles = () => {
           switch (toast.type) {
             case 'success':
@@ -163,9 +166,9 @@ const ToastContainer: React.FC<{
             key={toast.id}
             role={toast.type === 'error' ? 'alert' : 'status'}
             aria-live="polite"
-            className={`pointer-events-auto flex items-start gap-3 p-4 rounded-xl border shadow-lg backdrop-blur-sm transition-all duration-300 animate-slide-in-right ${bg} ${border}`}
+            className={`pointer-events-auto flex items-start gap-2.5 sm:gap-3 p-3 sm:p-4 rounded-xl border shadow-lg backdrop-blur-sm transition-all duration-300 animate-slide-up sm:animate-slide-in-right ${bg} ${border}`}
           >
-            <Icon className={`w-5 h-5 shrink-0 mt-0.5 ${iconColor}`} />
+            <Icon className={`w-4 h-4 sm:w-5 sm:h-5 shrink-0 mt-0.5 ${iconColor}`} />
             <div className="flex-1 min-w-0 pr-1">
               {toast.title && (
                 <p className={`text-xs font-bold ${titleColor} mb-0.5`}>

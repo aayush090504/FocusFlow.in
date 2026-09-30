@@ -377,7 +377,7 @@ export const FocusTimerView: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 items-start">
         {/* Left Timer Console (8 cols) */}
         <div 
-          className="lg:col-span-8 rounded-3xl border shadow-sm p-5 sm:p-10 flex flex-col items-center"
+          className="lg:col-span-8 rounded-3xl border shadow-sm p-3.5 xs:p-5 sm:p-10 flex flex-col items-center"
           style={{
             backgroundColor: 'var(--color-bg-surface)',
             borderColor: 'var(--color-border-default)',
@@ -502,7 +502,7 @@ export const FocusTimerView: React.FC = () => {
 
           {/* Big Circular Timer Display */}
           <div 
-            className="relative w-64 h-64 sm:w-80 sm:h-80 aspect-square flex items-center justify-center mb-6 sm:mb-8 shrink-0"
+            className="relative w-56 h-56 xs:w-64 xs:h-64 sm:w-80 sm:h-80 aspect-square max-w-full flex items-center justify-center mb-5 sm:mb-8 shrink-0"
             role="timer"
             aria-live="polite"
             aria-atomic="true"
@@ -536,11 +536,11 @@ export const FocusTimerView: React.FC = () => {
             </svg>
 
             {/* Inner Content */}
-            <div className="absolute inset-0 flex flex-col items-center justify-between text-center p-6 sm:p-8 pointer-events-none">
+            <div className="absolute inset-0 flex flex-col items-center justify-between text-center p-4 xs:p-6 sm:p-8 pointer-events-none">
               {/* Top slot: Mode indicator */}
               <div className="flex-1 flex items-end justify-center pb-1">
                 <span 
-                  className="text-[11px] sm:text-xs font-bold uppercase tracking-widest px-2.5 py-0.5 rounded-full border"
+                  className="text-[10px] xs:text-[11px] sm:text-xs font-bold uppercase tracking-widest px-2 xs:px-2.5 py-0.5 rounded-full border"
                   style={{ 
                     backgroundColor: isBreak ? 'rgba(16, 185, 129, 0.12)' : 'var(--color-accent-subtle)',
                     borderColor: 'var(--color-border-default)',
@@ -554,7 +554,7 @@ export const FocusTimerView: React.FC = () => {
               {/* Center Anchor: Timer Digits */}
               <div className="shrink-0 flex flex-col items-center justify-center my-auto">
                 <span 
-                  className="text-4xl sm:text-6xl font-extrabold tracking-tight font-mono leading-none tabular-nums select-text pointer-events-auto" 
+                  className="text-3xl xs:text-4xl sm:text-6xl font-extrabold tracking-tight font-mono leading-none tabular-nums select-text pointer-events-auto" 
                   style={{ color: 'var(--color-text-primary)' }}
                 >
                   {timeFormatted}

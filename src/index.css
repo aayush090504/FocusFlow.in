@@ -333,4 +333,19 @@ html, body {
   color: var(--color-text-muted);
 }
 
+/* Safe Area Support for Mobile Notches and Home Indicators */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.safe-area-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+/* Prevent horizontal body overflow on mobile rubber-banding */
+html, body {
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
 

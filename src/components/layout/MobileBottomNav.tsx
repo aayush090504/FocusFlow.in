@@ -62,7 +62,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
           aria-label="Quick Action Menu"
         >
           <div 
-            className="fixed bottom-20 left-4 right-4 z-50 rounded-2xl p-4 border shadow-2xl space-y-2 animate-slide-up"
+            className="fixed bottom-[calc(4.75rem+env(safe-area-inset-bottom,0px))] left-3 right-3 sm:left-auto sm:right-6 sm:w-96 z-50 rounded-2xl p-4 border shadow-2xl space-y-2 animate-slide-up max-h-[calc(100dvh-6rem)] overflow-y-auto overscroll-contain"
             style={{
               backgroundColor: 'var(--color-bg-surface)',
               borderColor: 'var(--color-border-default)',
@@ -213,15 +213,16 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
 
       {/* Persistent Bottom Bar on Mobile */}
       <nav 
-        className="fixed bottom-0 left-0 right-0 z-40 md:hidden border-t backdrop-blur-md transition-colors"
+        className="fixed bottom-0 left-0 right-0 z-40 md:hidden border-t backdrop-blur-md transition-colors safe-area-bottom"
         style={{
           backgroundColor: 'var(--color-bg-surface)',
           borderColor: 'var(--color-border-default)',
-          color: 'var(--color-text-primary)'
+          color: 'var(--color-text-primary)',
+          paddingBottom: 'env(safe-area-inset-bottom, 0px)'
         }}
         aria-label="Mobile Navigation"
       >
-        <div className="flex items-center justify-around h-16 px-2 safe-area-bottom">
+        <div className="flex items-center justify-around h-16 px-1 xs:px-2">
           {/* 1. Dashboard */}
           <button
             onClick={() => handleNavClick('dashboard')}
@@ -234,8 +235,8 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
             aria-label="Dashboard"
             aria-current={activeTab === 'dashboard' ? 'page' : undefined}
           >
-            <LayoutDashboard className="w-5 h-5 mb-0.5" />
-            <span className="text-[10px] leading-tight">Home</span>
+            <LayoutDashboard className="w-4 h-4 xs:w-5 xs:h-5 mb-0.5" />
+            <span className="text-[9px] xs:text-[10px] leading-tight">Home</span>
           </button>
 
           {/* 2. Tasks */}
@@ -251,28 +252,28 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
             aria-current={activeTab === 'tasks' ? 'page' : undefined}
           >
             <div className="relative">
-              <CheckSquare className="w-5 h-5 mb-0.5" />
+              <CheckSquare className="w-4 h-4 xs:w-5 xs:h-5 mb-0.5" />
               {pendingTasksCount > 0 && (
-                <span className="absolute -top-1 -right-2 w-4 h-4 rounded-full bg-indigo-600 text-white text-[9px] font-bold flex items-center justify-center">
+                <span className="absolute -top-1 -right-2 w-3.5 h-3.5 xs:w-4 xs:h-4 rounded-full bg-indigo-600 text-white text-[8px] xs:text-[9px] font-bold flex items-center justify-center">
                   {pendingTasksCount > 9 ? '9+' : pendingTasksCount}
                 </span>
               )}
             </div>
-            <span className="text-[10px] leading-tight">Tasks</span>
+            <span className="text-[9px] xs:text-[10px] leading-tight">Tasks</span>
           </button>
 
           {/* 3. Central Quick Action Trigger (+) */}
           <div className="flex-1 flex justify-center items-center">
             <button
               onClick={() => setIsQuickActionOpen(!isQuickActionOpen)}
-              className="w-11 h-11 rounded-full shadow-lg flex items-center justify-center text-white transition-transform active:scale-90"
+              className="w-10 h-10 xs:w-11 xs:h-11 rounded-full shadow-lg flex items-center justify-center text-white transition-transform active:scale-90"
               style={{
                 backgroundColor: 'var(--color-accent-primary)'
               }}
               aria-label="Quick Action Menu"
               aria-expanded={isQuickActionOpen}
             >
-              <Plus className={`w-6 h-6 transition-transform duration-200 ${isQuickActionOpen ? 'rotate-45' : ''}`} />
+              <Plus className={`w-5 h-5 xs:w-6 xs:h-6 transition-transform duration-200 ${isQuickActionOpen ? 'rotate-45' : ''}`} />
             </button>
           </div>
 
@@ -289,12 +290,12 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
             aria-current={activeTab === 'focus' ? 'page' : undefined}
           >
             <div className="relative">
-              <Clock className="w-5 h-5 mb-0.5" />
+              <Clock className="w-4 h-4 xs:w-5 xs:h-5 mb-0.5" />
               {isTimerRunning && (
-                <span className="absolute -top-0.5 -right-1 w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />
+                <span className="absolute -top-0.5 -right-1 w-2 h-2 xs:w-2.5 xs:h-2.5 rounded-full bg-emerald-500 animate-ping" />
               )}
             </div>
-            <span className="text-[10px] leading-tight">
+            <span className="text-[9px] xs:text-[10px] leading-tight">
               {isTimerRunning ? 'Active' : 'Focus'}
             </span>
           </button>
@@ -311,8 +312,8 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
             aria-label="Subjects and Courses"
             aria-current={activeTab === 'subjects' ? 'page' : undefined}
           >
-            <BookOpen className="w-5 h-5 mb-0.5" />
-            <span className="text-[10px] leading-tight">Subjects</span>
+            <BookOpen className="w-4 h-4 xs:w-5 xs:h-5 mb-0.5" />
+            <span className="text-[9px] xs:text-[10px] leading-tight">Subjects</span>
           </button>
 
           {/* 6. Goals & Progress */}
@@ -327,8 +328,8 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
             aria-label="Analytics and Goals"
             aria-current={activeTab === 'analytics' ? 'page' : undefined}
           >
-            <BarChart3 className="w-5 h-5 mb-0.5" />
-            <span className="text-[10px] leading-tight">Stats</span>
+            <BarChart3 className="w-4 h-4 xs:w-5 xs:h-5 mb-0.5" />
+            <span className="text-[9px] xs:text-[10px] leading-tight">Stats</span>
           </button>
         </div>
       </nav>

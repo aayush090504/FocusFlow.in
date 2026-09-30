@@ -453,8 +453,31 @@ const AuthenticatedWorkspace: React.FC<AuthenticatedWorkspaceProps> = ({
     announce
   ]);
 
+  // Lock background body scroll when any modal is open to prevent background dashboard scrolling on mobile
+  const isAnyModalActive = 
+    isTimerModalOpen || 
+    isTaskModalOpen || 
+    isSubjectModalOpen || 
+    isGoalModalOpen || 
+    isSettingsModalOpen || 
+    isShortcutsModalOpen || 
+    isOnboardingModalOpen;
+
+  useEffect(() => {
+    if (isAnyModalActive) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [isAnyModalActive]);
+
   return (
-    <div className="min-h-screen flex flex-col transition-colors duration-200 pb-20 md:pb-8" style={{ backgroundColor: 'var(--color-bg-app)', color: 'var(--color-text-primary)' }}>
+    <div 
+      className="min-h-screen flex flex-col transition-colors duration-200 pb-[calc(5rem+env(safe-area-inset-bottom,0px))] md:pb-8" 
+      style={{ backgroundColor: 'var(--color-bg-app)', color: 'var(--color-text-primary)' }}
+    >
       {/* Skip to Main Content Link for Keyboard and Screen Reader Accessibility */}
       <a href="#main-content" className="skip-link">
         Skip to main content
@@ -473,7 +496,7 @@ const AuthenticatedWorkspace: React.FC<AuthenticatedWorkspaceProps> = ({
       <main 
         id="main-content" 
         tabIndex={-1}
-        className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-8 focus:outline-none"
+        className="flex-1 max-w-7xl w-full mx-auto px-2.5 xs:px-4 sm:px-6 lg:px-8 pt-4 sm:pt-8 focus:outline-none"
       >
         {activeTab === 'dashboard' && <DashboardView setActiveTab={setActiveTab} onOpenSettings={onOpenSettings} />}
         {activeTab === 'tasks' && <TasksView />}

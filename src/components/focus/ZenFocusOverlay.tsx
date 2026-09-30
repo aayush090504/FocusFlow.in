@@ -219,11 +219,12 @@ export const ZenFocusOverlay: React.FC = () => {
       {/* TOP BAR */}
       <header className="relative z-10 flex items-center justify-between p-4 sm:p-8 max-w-7xl w-full mx-auto">
         {/* Left: Zen Status indicator */}
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-900/80 border border-slate-800 text-xs font-bold text-emerald-400 backdrop-blur-md shadow-sm">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-1.5 xs:gap-2 px-2.5 xs:px-3.5 py-1.5 rounded-full bg-slate-900/80 border border-slate-800 text-xs font-bold text-emerald-400 backdrop-blur-md shadow-sm">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <ShieldCheck className="w-3.5 h-3.5" />
-            <span>Zen Mode • Distractions Blocked</span>
+            <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
+            <span className="hidden xs:inline">Zen Mode • Distractions Blocked</span>
+            <span className="xs:hidden">Zen Mode</span>
           </div>
 
           <div className="hidden sm:flex items-center gap-1.5 text-xs text-slate-400 font-medium">
@@ -365,8 +366,8 @@ export const ZenFocusOverlay: React.FC = () => {
         </div>
 
         {/* Circular Timer Display */}
-        <div className="relative flex items-center justify-center my-2">
-          <svg className="w-72 h-72 sm:w-88 sm:h-88 transform -rotate-90">
+        <div className="relative flex items-center justify-center my-2 max-w-full">
+          <svg className="w-60 h-60 xs:w-72 xs:h-72 sm:w-88 sm:h-88 transform -rotate-90 max-w-full">
             {/* Track Background */}
             <circle
               cx="50%"
@@ -402,7 +403,7 @@ export const ZenFocusOverlay: React.FC = () => {
 
           {/* Center Digital Clock */}
           <div className="absolute inset-0 flex flex-col items-center justify-center space-y-1 sm:space-y-2">
-            <span className="text-5xl sm:text-7xl font-mono font-black tracking-tight text-white drop-shadow-md">
+            <span className="text-4xl xs:text-5xl sm:text-7xl font-mono font-black tracking-tight text-white drop-shadow-md">
               {timeFormatted}
             </span>
             <span className="text-xs sm:text-sm font-semibold text-slate-400 uppercase tracking-widest">

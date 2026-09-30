@@ -158,8 +158,8 @@ export const FocusTimerModal: React.FC<FocusTimerModalProps> = ({ isOpen, onClos
   const currentSubject = subjects.find(s => s.id === selectedSubjectId);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-md animate-fade-in overflow-y-auto">
-      <div className="relative w-full max-w-lg bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col my-8 max-h-[90vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 bg-slate-900/80 backdrop-blur-md animate-fade-in">
+      <div className="relative w-full max-w-lg bg-white dark:bg-slate-900 rounded-2xl sm:rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col max-h-[92dvh] sm:max-h-[90vh]">
         {/* Header */}
         <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/70 dark:bg-slate-800/40">
           <div className="flex items-center gap-2">
@@ -204,7 +204,7 @@ export const FocusTimerModal: React.FC<FocusTimerModalProps> = ({ isOpen, onClos
           </div>
         </div>
 
-        <div className="p-6 sm:p-8 flex flex-col items-center overflow-y-auto">
+        <div className="p-4 sm:p-8 flex flex-col items-center overflow-y-auto overscroll-contain flex-1">
           {/* Preset Mode Buttons */}
           <div className="flex p-1 bg-slate-100 dark:bg-slate-800 rounded-xl mb-4 w-full max-w-md border border-slate-200/60 dark:border-slate-700 overflow-x-auto">
             <button

@@ -80,14 +80,10 @@ export const BadgesModal: React.FC = () => {
     if (!isBadgesModalOpen) return;
 
     const originalOverflow = document.body.style.overflow;
-    const originalTouchAction = document.body.style.touchAction;
-
     document.body.style.overflow = 'hidden';
-    document.body.style.touchAction = 'none';
 
     return () => {
       document.body.style.overflow = originalOverflow;
-      document.body.style.touchAction = originalTouchAction;
     };
   }, [isBadgesModalOpen]);
 
@@ -109,7 +105,7 @@ export const BadgesModal: React.FC = () => {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 md:p-6 bg-black/60 backdrop-blur-xs animate-fade-in">
       <div 
-        className="relative w-full max-w-7xl max-h-[96vh] h-[94vh] flex flex-col rounded-3xl border shadow-2xl overflow-hidden"
+        className="relative w-full max-w-7xl max-h-[94dvh] h-[92dvh] sm:max-h-[96vh] sm:h-[94vh] flex flex-col rounded-2xl sm:rounded-3xl border shadow-2xl overflow-hidden"
         style={{
           backgroundColor: 'var(--color-bg-surface)',
           borderColor: 'var(--color-border-default)',

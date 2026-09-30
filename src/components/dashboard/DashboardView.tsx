@@ -666,6 +666,163 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ setActiveTab, onOp
               )}
             </div>
           </div>
+
+          {/* Active Goals & Subjects Overview */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            {/* Active Goals Section */}
+            <div 
+              className="rounded-2xl border shadow-xs p-6 h-full flex flex-col justify-between"
+              style={{
+                backgroundColor: 'var(--color-bg-surface)',
+                borderColor: 'var(--color-border-default)'
+              }}
+            >
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <Target className="w-4 h-4" style={{ color: 'var(--color-accent-primary)' }} />
+                    <h3 className="text-sm font-bold" style={{ color: 'var(--color-text-primary)' }}>Study Goals</h3>
+                  </div>
+                  <button
+                    onClick={() => setActiveTab('goals')}
+                    className="text-xs font-semibold flex items-center gap-1 hover:opacity-80 touch-target"
+                    style={{ color: 'var(--color-accent-primary)' }}
+                    aria-label="View all goals"
+                  >
+                    <span>View all</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+
+                {activeGoals.length === 0 ? (
+                  <div 
+                    className="text-center py-4 rounded-xl border border-dashed"
+                    style={{
+                      backgroundColor: 'var(--color-bg-subtle)',
+                      borderColor: 'var(--color-border-default)'
+                    }}
+                  >
+                    <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>No active goals set.</p>
+                    <button
+                      onClick={() => setIsGoalModalOpen(true)}
+                      className="mt-1 text-xs font-bold hover:underline touch-target"
+                      style={{ color: 'var(--color-accent-primary)' }}
+                      aria-label="Create your first study goal"
+                    >
+                      + Create your first goal
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {activeGoals.slice(0, 3).map((goal) => {
+                      const current = goal.currentValue || 0;
+                      const target = goal.targetValue;
+                      const percent = Math.min(100, Math.round((current / target) * 100));
+
+                      return (
+                        <div 
+                          key={goal.id} 
+                          className="p-3 rounded-xl border"
+                          style={{
+                            backgroundColor: 'var(--color-bg-subtle)',
+                            borderColor: 'var(--color-border-default)'
+                          }}
+                        >
+                          <div className="flex items-center justify-between text-xs mb-1">
+                            <span className="font-bold truncate pr-2" style={{ color: 'var(--color-text-primary)' }}>
+                              {goal.title}
+                            </span>
+                            <span className="font-mono font-bold text-[11px] shrink-0" style={{ color: 'var(--color-accent-primary)' }}>
+                              {percent}%
+                            </span>
+                          </div>
+                          <div className="w-full h-1.5 rounded-full overflow-hidden mb-1" style={{ backgroundColor: 'var(--color-border-default)' }}>
+                            <div
+                              className="h-full rounded-full transition-all"
+                              style={{
+                                backgroundColor: 'var(--color-accent-primary)',
+                                width: `${percent}%`
+                              }}
+                            />
+                          </div>
+                          <div className="flex items-center justify-between text-[10px] font-mono" style={{ color: 'var(--color-text-secondary)' }}>
+                            <span>{current} / {target} {goal.unit}</span>
+                            {goal.targetDate && <span>Due: {goal.targetDate}</span>}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Subjects Progress Overview */}
+            <div 
+              className="rounded-2xl border shadow-xs p-6 h-full flex flex-col justify-between"
+              style={{
+                backgroundColor: 'var(--color-bg-surface)',
+                borderColor: 'var(--color-border-default)'
+              }}
+            >
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <BookOpen className="w-4 h-4" style={{ color: 'var(--color-accent-primary)' }} />
+                    <h3 className="text-sm font-bold" style={{ color: 'var(--color-text-primary)' }}>Subject Overview</h3>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setSelectedSubjectForEdit(null);
+                      setIsSubjectModalOpen(true);
+                    }}
+                    className="text-xs font-semibold hover:underline touch-target"
+                    style={{ color: 'var(--color-accent-primary)' }}
+                    aria-label="Add new subject"
+                  >
+                    + New Subject
+                  </button>
+                </div>
+
+                <div className="space-y-3">
+                  {subjects.map((sub) => {
+                    const subTasks = tasks.filter(t => t.subjectId === sub.id);
+                    const subDone = subTasks.filter(t => t.status === 'completed').length;
+                    return (
+                      <div 
+                        key={sub.id} 
+                        className="p-3 rounded-xl border"
+                        style={{
+                          backgroundColor: 'var(--color-bg-subtle)',
+                          borderColor: 'var(--color-border-default)'
+                        }}
+                      >
+                        <div className="flex items-center justify-between text-xs mb-1.5">
+                          <span className="font-bold flex items-center gap-1.5" style={{ color: 'var(--color-text-primary)' }}>
+                            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: sub.color }} />
+                            {sub.name}
+                          </span>
+                          <span className="text-[11px]" style={{ color: 'var(--color-text-secondary)' }}>
+                            {subDone}/{subTasks.length} tasks done
+                          </span>
+                        </div>
+                        {/* Tiny bar */}
+                        <div className="w-full h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--color-border-default)' }}>
+                          <div
+                            className="h-full rounded-full transition-all"
+                            style={{
+                              backgroundColor: sub.color,
+                              width: `${subTasks.length ? Math.round((subDone / subTasks.length) * 100) : 0}%`
+                            }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Right Column: Focus & Progress (5 Cols) */}
@@ -788,156 +945,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ setActiveTab, onOp
                   );
                 })
               )}
-            </div>
-          </div>
-
-          {/* Active Goals Section */}
-          <div 
-            className="rounded-2xl border shadow-xs p-6"
-            style={{
-              backgroundColor: 'var(--color-bg-surface)',
-              borderColor: 'var(--color-border-default)'
-            }}
-          >
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <Target className="w-4 h-4" style={{ color: 'var(--color-accent-primary)' }} />
-                <h3 className="text-sm font-bold" style={{ color: 'var(--color-text-primary)' }}>Study Goals</h3>
-              </div>
-              <button
-                onClick={() => setActiveTab('goals')}
-                className="text-xs font-semibold flex items-center gap-1 hover:opacity-80 touch-target"
-                style={{ color: 'var(--color-accent-primary)' }}
-                aria-label="View all goals"
-              >
-                <span>View all</span>
-                <ChevronRight className="w-3.5 h-3.5" />
-              </button>
-            </div>
-
-            {activeGoals.length === 0 ? (
-              <div 
-                className="text-center py-4 rounded-xl border border-dashed"
-                style={{
-                  backgroundColor: 'var(--color-bg-subtle)',
-                  borderColor: 'var(--color-border-default)'
-                }}
-              >
-                <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>No active goals set.</p>
-                <button
-                  onClick={() => setIsGoalModalOpen(true)}
-                  className="mt-1 text-xs font-bold hover:underline touch-target"
-                  style={{ color: 'var(--color-accent-primary)' }}
-                  aria-label="Create your first study goal"
-                >
-                  + Create your first goal
-                </button>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {activeGoals.slice(0, 3).map((goal) => {
-                  const current = goal.currentValue || 0;
-                  const target = goal.targetValue;
-                  const percent = Math.min(100, Math.round((current / target) * 100));
-
-                  return (
-                    <div 
-                      key={goal.id} 
-                      className="p-3 rounded-xl border"
-                      style={{
-                        backgroundColor: 'var(--color-bg-subtle)',
-                        borderColor: 'var(--color-border-default)'
-                      }}
-                    >
-                      <div className="flex items-center justify-between text-xs mb-1">
-                        <span className="font-bold truncate pr-2" style={{ color: 'var(--color-text-primary)' }}>
-                          {goal.title}
-                        </span>
-                        <span className="font-mono font-bold text-[11px] shrink-0" style={{ color: 'var(--color-accent-primary)' }}>
-                          {percent}%
-                        </span>
-                      </div>
-                      <div className="w-full h-1.5 rounded-full overflow-hidden mb-1" style={{ backgroundColor: 'var(--color-border-default)' }}>
-                        <div
-                          className="h-full rounded-full transition-all"
-                          style={{
-                            backgroundColor: 'var(--color-accent-primary)',
-                            width: `${percent}%`
-                          }}
-                        />
-                      </div>
-                      <div className="flex items-center justify-between text-[10px] font-mono" style={{ color: 'var(--color-text-secondary)' }}>
-                        <span>{current} / {target} {goal.unit}</span>
-                        {goal.targetDate && <span>Due: {goal.targetDate}</span>}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-
-          {/* Subjects Progress Overview */}
-          <div 
-            className="rounded-2xl border shadow-xs p-6"
-            style={{
-              backgroundColor: 'var(--color-bg-surface)',
-              borderColor: 'var(--color-border-default)'
-            }}
-          >
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <BookOpen className="w-4 h-4" style={{ color: 'var(--color-accent-primary)' }} />
-                <h3 className="text-sm font-bold" style={{ color: 'var(--color-text-primary)' }}>Subject Overview</h3>
-              </div>
-              <button
-                onClick={() => {
-                  setSelectedSubjectForEdit(null);
-                  setIsSubjectModalOpen(true);
-                }}
-                className="text-xs font-semibold hover:underline touch-target"
-                style={{ color: 'var(--color-accent-primary)' }}
-                aria-label="Add new subject"
-              >
-                + New Subject
-              </button>
-            </div>
-
-            <div className="space-y-3">
-              {subjects.map((sub) => {
-                const subTasks = tasks.filter(t => t.subjectId === sub.id);
-                const subDone = subTasks.filter(t => t.status === 'completed').length;
-                return (
-                  <div 
-                    key={sub.id} 
-                    className="p-3 rounded-xl border"
-                    style={{
-                      backgroundColor: 'var(--color-bg-subtle)',
-                      borderColor: 'var(--color-border-default)'
-                    }}
-                  >
-                    <div className="flex items-center justify-between text-xs mb-1.5">
-                      <span className="font-bold flex items-center gap-1.5" style={{ color: 'var(--color-text-primary)' }}>
-                        <span className="w-2 h-2 rounded-full" style={{ backgroundColor: sub.color }} />
-                        {sub.name}
-                      </span>
-                      <span className="text-[11px]" style={{ color: 'var(--color-text-secondary)' }}>
-                        {subDone}/{subTasks.length} tasks done
-                      </span>
-                    </div>
-                    {/* Tiny bar */}
-                    <div className="w-full h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--color-border-default)' }}>
-                      <div
-                        className="h-full rounded-full transition-all"
-                        style={{
-                          backgroundColor: sub.color,
-                          width: `${subTasks.length ? Math.round((subDone / subTasks.length) * 100) : 0}%`
-                        }}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
             </div>
           </div>
         </div>
