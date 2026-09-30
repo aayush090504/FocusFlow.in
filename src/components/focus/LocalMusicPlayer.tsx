@@ -493,8 +493,8 @@ export const LocalMusicPlayer: React.FC<LocalMusicPlayerProps> = ({ compact = fa
             </div>
 
             {/* Local Track Volume Control */}
-            <div className="flex items-center gap-2 min-w-[150px] sm:min-w-[180px]">
-              <span className="text-slate-500">
+            <div className="flex items-center gap-2 flex-1 sm:flex-initial justify-between sm:justify-end min-w-0 max-w-full">
+              <span className="text-slate-500 shrink-0">
                 {localMusicVolume === 0 || !soundSettings.masterEnabled ? (
                   <VolumeX className="w-3.5 h-3.5" />
                 ) : localMusicVolume < 50 ? (
@@ -510,11 +510,11 @@ export const LocalMusicPlayer: React.FC<LocalMusicPlayerProps> = ({ compact = fa
                 value={localMusicVolume}
                 onChange={(e) => setLocalMusicVolume(Number(e.target.value))}
                 disabled={!soundSettings.masterEnabled}
-                className="w-24 sm:w-28 h-1.5 rounded-lg cursor-pointer touch-target disabled:opacity-40"
+                className="w-20 sm:w-28 h-1.5 rounded-lg cursor-pointer touch-target disabled:opacity-40"
                 style={{ accentColor: 'var(--color-accent-primary)' }}
                 aria-label="Local music volume"
               />
-              <span className="text-xs font-mono font-bold w-9 text-right" style={{ color: 'var(--color-text-primary)' }}>
+              <span className="text-xs font-mono font-bold w-9 text-right shrink-0" style={{ color: 'var(--color-text-primary)' }}>
                 {localMusicVolume}%
               </span>
             </div>

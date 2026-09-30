@@ -191,7 +191,7 @@ export const AmbientSoundControl: React.FC<AmbientSoundControlProps> = ({ compac
   // Full Rich Dashboard Layout
   return (
     <div 
-      className="rounded-3xl border shadow-xs p-5 sm:p-6 space-y-5"
+      className="rounded-3xl border shadow-xs p-4 sm:p-6 space-y-4 sm:space-y-5 overflow-hidden max-w-full"
       style={{
         backgroundColor: 'var(--color-bg-surface)',
         borderColor: 'var(--color-border-default)',
@@ -200,9 +200,9 @@ export const AmbientSoundControl: React.FC<AmbientSoundControlProps> = ({ compac
     >
       {/* Header with Master Audio Toggle and Tabs */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2.5 min-w-0">
           <div 
-            className="w-8 h-8 rounded-xl flex items-center justify-center border"
+            className="w-8 h-8 rounded-xl flex items-center justify-center border shrink-0"
             style={{
               backgroundColor: 'var(--color-accent-subtle)',
               borderColor: 'var(--color-border-default)',
@@ -211,18 +211,18 @@ export const AmbientSoundControl: React.FC<AmbientSoundControlProps> = ({ compac
           >
             <Headphones className="w-4 h-4" />
           </div>
-          <div>
-            <h3 className="text-sm font-bold">Sound & Ambience</h3>
-            <p className="text-[11px]" style={{ color: 'var(--color-text-secondary)' }}>
+          <div className="min-w-0">
+            <h3 className="text-sm font-bold truncate">Sound & Ambience</h3>
+            <p className="text-[11px] truncate sm:whitespace-normal" style={{ color: 'var(--color-text-secondary)' }}>
               Procedural audio soundscapes and local study music
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2 w-full sm:w-auto min-w-0">
           {/* Segmented Mode Selector */}
           <div 
-            className="p-1 rounded-2xl border flex items-center gap-1 text-xs font-bold"
+            className="p-1 rounded-2xl border flex items-center gap-1 text-xs font-bold flex-1 sm:flex-initial min-w-0"
             style={{
               backgroundColor: 'var(--color-bg-subtle)',
               borderColor: 'var(--color-border-default)'
@@ -231,7 +231,7 @@ export const AmbientSoundControl: React.FC<AmbientSoundControlProps> = ({ compac
             <button
               type="button"
               onClick={() => setActiveTab('soundscapes')}
-              className={`px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 touch-target ${
+              className={`flex-1 sm:flex-initial justify-center px-2 sm:px-3 py-1.5 rounded-xl transition-all flex items-center gap-1 sm:gap-1.5 touch-target min-w-0 ${
                 activeTab === 'soundscapes'
                   ? 'bg-indigo-600 text-white shadow-xs'
                   : 'hover:text-indigo-600 dark:hover:text-indigo-400'
@@ -240,17 +240,17 @@ export const AmbientSoundControl: React.FC<AmbientSoundControlProps> = ({ compac
                 color: activeTab === 'soundscapes' ? '#ffffff' : 'var(--color-text-secondary)'
               }}
             >
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>Soundscapes</span>
+              <Sparkles className="w-3.5 h-3.5 shrink-0" />
+              <span className="truncate text-[11px] sm:text-xs">Soundscapes</span>
               {isAmbientPlaying && (
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
               )}
             </button>
 
             <button
               type="button"
               onClick={() => setActiveTab('local_music')}
-              className={`px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 touch-target ${
+              className={`flex-1 sm:flex-initial justify-center px-2 sm:px-3 py-1.5 rounded-xl transition-all flex items-center gap-1 sm:gap-1.5 touch-target min-w-0 ${
                 activeTab === 'local_music'
                   ? 'bg-indigo-600 text-white shadow-xs'
                   : 'hover:text-indigo-600 dark:hover:text-indigo-400'
@@ -259,10 +259,10 @@ export const AmbientSoundControl: React.FC<AmbientSoundControlProps> = ({ compac
                 color: activeTab === 'local_music' ? '#ffffff' : 'var(--color-text-secondary)'
               }}
             >
-              <Music className="w-3.5 h-3.5" />
-              <span>Local Music</span>
+              <Music className="w-3.5 h-3.5 shrink-0" />
+              <span className="truncate text-[11px] sm:text-xs">Local Music</span>
               {isLocalMusicPlaying && (
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
               )}
             </button>
           </div>
@@ -271,7 +271,7 @@ export const AmbientSoundControl: React.FC<AmbientSoundControlProps> = ({ compac
           <button
             type="button"
             onClick={toggleMasterSound}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold transition-colors touch-target"
+            className="flex items-center justify-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl border text-xs font-semibold transition-colors touch-target shrink-0"
             style={{
               backgroundColor: 'var(--color-bg-subtle)',
               borderColor: 'var(--color-border-default)',
@@ -282,13 +282,13 @@ export const AmbientSoundControl: React.FC<AmbientSoundControlProps> = ({ compac
           >
             {soundSettings.masterEnabled ? (
               <>
-                <Volume2 className="w-3.5 h-3.5 text-indigo-500" />
-                <span className="hidden sm:inline">Audio On</span>
+                <Volume2 className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                <span className="hidden md:inline">Audio On</span>
               </>
             ) : (
               <>
-                <VolumeX className="w-3.5 h-3.5 text-slate-400" />
-                <span className="hidden sm:inline">Muted</span>
+                <VolumeX className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                <span className="hidden md:inline">Muted</span>
               </>
             )}
           </button>
