@@ -24,6 +24,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useStudy } from '../../context/StudyContext';
 import { useGamification } from '../../context/GamificationContext';
 import { BadgeIcon } from '../common/BadgeIcon';
+import { extractLocalDateKey } from '../../utils/dateUtils';
 
 export const AnalyticsView: React.FC = () => {
   const { userProfile } = useAuth();
@@ -81,7 +82,7 @@ export const AnalyticsView: React.FC = () => {
   const taskCompletionRate = totalTasks > 0 ? Math.round((totalCompletedTasksCount / totalTasks) * 100) : 0;
 
   // Streak
-  const streakCount = userProfile?.streakCount || 1;
+  const streakCount = userProfile?.streakCount ?? 0;
 
   // Weekly max for chart scale
   const maxWeeklyMinutes = Math.max(60, ...weeklyDaysData.map(d => d.minutes));
@@ -481,7 +482,7 @@ export const AnalyticsView: React.FC = () => {
                   </div>
                   <div className="flex items-center justify-between text-[11px] text-slate-500 font-mono">
                     <span>{current} / {target} {g.unit}</span>
-                    {g.targetDate && <span>Target: {g.targetDate}</span>}
+                    {g.targetDate && <span>Target: {extractLocalDateKey(g.targetDate) || g.targetDate}</span>}
                   </div>
                 </div>
               );

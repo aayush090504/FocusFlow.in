@@ -3,22 +3,28 @@
  * Production-ready sanitization, constraint validation, and error safety.
  */
 
-// Basic HTML/XSS Sanitizer (strips harmful tags and dangerous characters)
+export function hasControlOrNewlineChars(input: string): boolean {
+  return /[\r\n\0\x00-\x1f\x7f]/.test(input);
+}
+
+// Control-character & whitespace sanitizer (preserves mathematical operators like < and > cleanly;
+// React JSX auto-escapes rendered text and server-side email templates apply full HTML escaping).
 export function sanitizeInput(input: string): string {
-  if (!input) return '';
+  if (!input || typeof input !== 'string') return '';
   return input
-    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-    .replace(/<[^>]+>/g, '')
+    .replace(/[\0\x01-\x08\x0b\x0c\x0e-\x1f\x7f]/g, '')
     .trim();
 }
 
-// RFC 5322 Compliant Email Validation
+// Strict single-address email validation (rejects newlines, header chars, whitespace, multiple addresses)
 export function isValidEmail(email: string): boolean {
   if (!email || typeof email !== 'string') return false;
+  if (hasControlOrNewlineChars(email)) return false;
   const trimmed = email.trim();
   if (trimmed.length > 254 || trimmed.length < 3) return false;
-  // Standard compliant email regex
-  const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/;
+  if (/[\s,;<>'"\\]/.test(trimmed)) return false;
+  const emailRegex =
+    /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/;
   return emailRegex.test(trimmed);
 }
 
@@ -60,9 +66,9 @@ export function validatePassword(password: string): PasswordValidationResult {
 
 // Text Boundary & Required Field Validator
 export function validateTextField(
-  value: string, 
-  fieldName: string, 
-  maxLength: number, 
+  value: string,
+  fieldName: string,
+  maxLength: number,
   minLength = 1,
   required = true
 ): { isValid: boolean; error?: string; cleanValue: string } {
@@ -104,14 +110,12 @@ export function validateNumberRange(
 export function safeErrorMessage(err: unknown, defaultMessage = 'An unexpected error occurred.'): string {
   if (!err) return defaultMessage;
   if (typeof err === 'string') {
-    // If it looks like a stack trace or raw JSON, mask it
     if (err.includes('at ') && err.includes('.js')) return defaultMessage;
     return sanitizeInput(err);
   }
   if (err instanceof Error) {
     const msg = err.message;
     if (msg.includes('at ') && msg.includes('.js')) return defaultMessage;
-    // Strip file paths if any leaked
     return sanitizeInput(msg.replace(/\/[\w.-]+/g, ''));
   }
   return defaultMessage;

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Sparkles, 
   CheckSquare, 
@@ -52,6 +52,20 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLogin,
     { id: '2', title: 'Review Chapter 8: Organic Synthesis Reactions', subject: 'Organic Chemistry', done: false, priority: 'high' },
     { id: '3', title: 'Draft Literature Review for Senior Thesis', subject: 'Academic Research', done: false, priority: 'medium' },
   ]);
+
+  useEffect(() => {
+    if (!isDemoTimerRunning) return;
+    const interval = setInterval(() => {
+      setDemoTimerSeconds(prev => {
+        if (prev <= 1) {
+          setIsDemoTimerRunning(false);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [isDemoTimerRunning]);
 
   const toggleDemoTask = (id: string) => {
     setDemoTasks(prev => prev.map(t => t.id === id ? { ...t, done: !t.done } : t));
@@ -137,8 +151,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLogin,
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 selection:bg-indigo-500 selection:text-white antialiased font-sans">
       <SEOHead
-        title="Focus Flow — Personalized Study Workspace for Students"
-        description="All-in-one personalized study workspace for students. Organize courses, master 25/5 Pomodoros, track study hours against subject budgets, and maintain continuous study streaks."
+        title="Focus Flow — Study Timer, Pomodoro Tracker & Task Planner"
+        description="Focus Flow is the ultimate study timer, Pomodoro tracker, task planner, and focus streak app designed for students to master subjects, organize coursework, and build unstoppable focus."
         canonicalUrl="https://focusflow.in/"
         schemaJson={jsonLd}
       />
@@ -334,7 +348,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLogin,
 
                     <div className="flex items-center gap-2 mt-2 w-full">
                       <button
-                        onClick={() => setIsDemoTimerRunning(!isDemoTimerRunning)}
+                        onClick={() => {
+                          if (!isDemoTimerRunning && demoTimerSeconds <= 0) {
+                            setDemoTimerSeconds(1500);
+                          }
+                          setIsDemoTimerRunning(prev => !prev);
+                        }}
                         className="flex-1 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-md transition-all"
                       >
                         {isDemoTimerRunning ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}

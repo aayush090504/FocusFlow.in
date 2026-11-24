@@ -1,23 +1,47 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import { 
-  User, 
-  onAuthStateChanged, 
-  signInWithPopup, 
-  signInWithEmailAndPassword, 
-  createUserWithEmailAndPassword, 
-  sendPasswordResetEmail, 
-  signOut, 
-  deleteUser, 
+import React, { createContext, useContext, useEffect, useState, useMemo } from 'react';
+import {
+  User,
+  onAuthStateChanged,
+  signInWithPopup,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  sendPasswordResetEmail,
+  signOut,
+  deleteUser,
   updateProfile,
-  updatePassword
+  updatePassword,
+  EmailAuthProvider,
+  GoogleAuthProvider,
+  reauthenticateWithCredential,
+  reauthenticateWithPopup,
 } from 'firebase/auth';
-import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
+import {
+  doc,
+  getDoc,
+  setDoc,
+  updateDoc,
+  deleteDoc,
+  collection,
+  query,
+  limit,
+  getDocs,
+  writeBatch,
+} from 'firebase/firestore';
 import { auth, db, googleProvider, handleFirestoreError, OperationType } from '../lib/firebase';
 import { UserProfile, ThemeMode, NotificationSettings, PomodoroSettings, DEFAULT_POMODORO_SETTINGS } from '../types';
+import { formatLocalDateKey, getLocalDaysDiff } from '../utils/dateUtils';
+import {
+  AuthProviderKind,
+  DeleteAccountOptions,
+  getLinkedAuthProviders,
+  executeAccountDeletionWorkflow,
+  AccountDeletionError,
+} from '../services/accountDeletionService';
 
 interface AuthContextType {
   user: User | null;
   userProfile: UserProfile | null;
+  linkedProviders: AuthProviderKind[];
   loading: boolean;
   error: string | null;
   clearError: () => void;
@@ -26,19 +50,27 @@ interface AuthContextType {
   signupWithEmail: (email: string, pass: string, name: string) => Promise<void>;
   sendResetPassword: (email: string) => Promise<void>;
   logout: () => Promise<void>;
-  deleteAccount: () => Promise<void>;
+  deleteAccount: (options?: DeleteAccountOptions) => Promise<void>;
   updateDailyGoal: (minutes: number) => Promise<void>;
   updateDisplayName: (name: string) => Promise<void>;
   updateAvatar: (avatarIdOrUrl: string) => Promise<void>;
   updateTheme: (theme: ThemeMode) => Promise<void>;
   updateNotifications: (settings: NotificationSettings) => Promise<void>;
   updatePomodoroSettings: (settings: PomodoroSettings) => Promise<void>;
-  changePassword: (newPass: string) => Promise<void>;
+  changePassword: (newPass: string, currentPass?: string) => Promise<void>;
   completeOnboarding: () => Promise<void>;
+  markDefaultSubjectsSeeded: () => Promise<void>;
+  applyStreakUpdate: (lastActiveDate: string, streakCount: number) => void;
   refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+const LOCAL_STORAGE_PREF_KEYS = [
+  'focusflow_theme',
+  'focusflow_sound_settings',
+  'focusflow_pomodoro_settings',
+] as const;
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -48,9 +80,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const clearError = () => setError(null);
 
-  // Helper to format auth errors cleanly
-  const parseAuthError = (err: any): string => {
-    const code = err?.code || '';
+  const linkedProviders = useMemo(
+    () => getLinkedAuthProviders(user?.providerData),
+    [user]
+  );
+
+  // Helper to format auth errors cleanly without exposing raw internals
+  const parseAuthError = (err: unknown): string => {
+    const code =
+      typeof err === 'object' && err !== null && 'code' in err
+        ? String((err as { code: unknown }).code)
+        : '';
     switch (code) {
       case 'auth/email-already-in-use':
         return 'An account with this email address already exists. Please log in instead.';
@@ -63,15 +103,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       case 'auth/invalid-email':
         return 'Please enter a valid email address.';
       case 'auth/popup-closed-by-user':
-        return 'Google Sign-in was cancelled before completion.';
+      case 'auth/cancelled-popup-request':
+        return 'Google verification was cancelled before completion.';
       case 'auth/popup-blocked':
-        return 'Pop-up was blocked by your browser. Please allow popups for this site.';
+        return 'Pop-up was blocked by your browser. Please allow popups for this site and try again.';
+      case 'auth/user-mismatch':
+        return 'The selected Google account does not match your signed-in account.';
       case 'auth/too-many-requests':
-        return 'Too many unsuccessful attempts. Please wait a moment or reset your password.';
+        return 'Too many unsuccessful attempts. Please wait a moment before trying again.';
       case 'auth/requires-recent-login':
-        return 'For security purposes, please log out and log back in before modifying sensitive credentials.';
+        return 'For security purposes, please re-verify your credentials before performing this sensitive action.';
       default:
-        return err?.message || 'An unexpected authentication error occurred. Please try again.';
+        if (err instanceof AccountDeletionError) {
+          return err.message;
+        }
+        return 'An unexpected authentication error occurred. Please try again.';
     }
   };
 
@@ -82,7 +128,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     try {
       const snap = await getDoc(userDocRef);
-      const today = new Date().toISOString().split('T')[0];
+      const today = formatLocalDateKey();
 
       const defaultNotifications: NotificationSettings = {
         timerSound: true,
@@ -94,25 +140,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (snap.exists()) {
         const data = snap.data() as UserProfile;
-        // Check and update study streak based on last active date
+        // Check and update study streak based on local calendar days
         let streak = data.streakCount || 0;
         const lastDate = data.lastActiveDate;
 
         if (lastDate) {
-          const yesterday = new Date();
-          yesterday.setDate(yesterday.getDate() - 1);
-          const yesterdayStr = yesterday.toISOString().split('T')[0];
+          const diffDays = getLocalDaysDiff(lastDate, today);
 
-          if (lastDate === today) {
-            // Already active today, maintain streak
-          } else if (lastDate === yesterdayStr) {
-            // Active yesterday, streak continues when studying today
+          if (diffDays <= 0) {
+            // Active today (or ahead from prior UTC timestamp): maintain streak safely
+          } else if (diffDays === 1) {
+            // Active yesterday locally: streak continues when studying today
           } else {
-            // Missed a day, reset streak to 0 if gap is > 1 day
-            const diffDays = Math.floor((new Date(today).getTime() - new Date(lastDate).getTime()) / (1000 * 3600 * 24));
-            if (diffDays > 1) {
-              streak = 0;
-            }
+            // Missed a full local day: reset current streak while preserving longestStreak
+            streak = 0;
           }
         } else {
           streak = 1;
@@ -140,14 +181,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           updatedProfile.soundSettings = data.soundSettings;
         }
         if (data.gamification !== undefined) {
-          updatedProfile.gamification = data.gamification;
+          const existingLongest = Math.max(
+            data.gamification.longestStreak || 0,
+            streak,
+            ...(data.gamification.awardedStreakMilestones || []),
+            0
+          );
+          updatedProfile.gamification = {
+            ...data.gamification,
+            longestStreak: existingLongest,
+          };
         }
         if (data.onboardingCompletedAt !== undefined) {
           updatedProfile.onboardingCompletedAt = data.onboardingCompletedAt;
         }
+        if (data.hasSeededDefaultSubjects !== undefined) {
+          updatedProfile.hasSeededDefaultSubjects = data.hasSeededDefaultSubjects;
+        }
 
         // Clean any undefined keys before passing to Firestore setDoc
-        const payloadToSave: Record<string, any> = {};
+        const payloadToSave: Record<string, unknown> = {};
         for (const [key, val] of Object.entries(updatedProfile)) {
           if (val !== undefined) {
             payloadToSave[key] = val;
@@ -165,12 +218,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           photoURL: firebaseUser.photoURL || '',
           avatar: 'avatar-1',
           theme: 'light',
-          dailyGoalMinutes: 120, // default 2 hours daily study goal
+          dailyGoalMinutes: 120,
           streakCount: 1,
           pomodoroSettings: DEFAULT_POMODORO_SETTINGS,
           notificationSettings: defaultNotifications,
           lastActiveDate: today,
           hasCompletedOnboarding: false,
+          hasSeededDefaultSubjects: false,
           gamification: {
             totalXp: 0,
             level: 1,
@@ -183,12 +237,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             notifiedStreakMilestones: [],
             dailyBonusAwardedDates: [],
             streakBonusAwardedDates: [],
+            longestStreak: 1,
           },
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         };
 
-        const initialPayload: Record<string, any> = {};
+        const initialPayload: Record<string, unknown> = {};
         for (const [key, val] of Object.entries(initialProfile)) {
           if (val !== undefined) {
             initialPayload[key] = val;
@@ -211,8 +266,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(currentUser);
         try {
           await syncUserProfile(currentUser);
-        } catch (e) {
-          console.error('Failed to sync profile', e);
+        } catch {
+          console.error('Failed to sync profile.');
         }
       } else {
         setUser(null);
@@ -224,13 +279,54 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => unsubscribe();
   }, []);
 
+  const reauthenticateCurrentUser = async (
+    currentUser: User,
+    provider: AuthProviderKind,
+    password?: string
+  ): Promise<void> => {
+    if (provider === 'password') {
+      if (!currentUser.email || !password) {
+        throw new Error('Please enter your current password to verify your identity.');
+      }
+      try {
+        const credential = EmailAuthProvider.credential(currentUser.email, password);
+        await reauthenticateWithCredential(currentUser, credential);
+      } catch (err) {
+        throw new Error(parseAuthError(err));
+      }
+      return;
+    }
+
+    // Google re-authentication via popup
+    try {
+      const reauthProvider = new GoogleAuthProvider();
+      if (currentUser.email) {
+        reauthProvider.setCustomParameters({
+          login_hint: currentUser.email,
+          prompt: 'select_account',
+        });
+      } else {
+        reauthProvider.setCustomParameters({ prompt: 'select_account' });
+      }
+      const result = await reauthenticateWithPopup(currentUser, reauthProvider);
+      if (result.user.uid !== currentUser.uid) {
+        throw new Error('The selected Google account does not match your signed-in account.');
+      }
+    } catch (err) {
+      if (err instanceof Error && err.message.includes('does not match')) {
+        throw err;
+      }
+      throw new Error(parseAuthError(err));
+    }
+  };
+
   const signInWithGoogle = async () => {
     setError(null);
     setLoading(true);
     try {
       const res = await signInWithPopup(auth, googleProvider);
       await syncUserProfile(res.user);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setError(parseAuthError(err));
       throw err;
     } finally {
@@ -244,7 +340,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const res = await signInWithEmailAndPassword(auth, email, pass);
       await syncUserProfile(res.user);
-    } catch (err: any) {
+    } catch (err: unknown) {
       const msg = parseAuthError(err);
       setError(msg);
       throw new Error(msg);
@@ -262,7 +358,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         await updateProfile(res.user, { displayName: name.trim() });
       }
       await syncUserProfile(res.user, name.trim());
-    } catch (err: any) {
+    } catch (err: unknown) {
       const msg = parseAuthError(err);
       setError(msg);
       throw new Error(msg);
@@ -275,7 +371,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setError(null);
     try {
       await sendPasswordResetEmail(auth, email);
-    } catch (err: any) {
+    } catch (err: unknown) {
       const msg = parseAuthError(err);
       setError(msg);
       throw new Error(msg);
@@ -288,27 +384,65 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await signOut(auth);
       setUser(null);
       setUserProfile(null);
-    } catch (err: any) {
+    } catch (err: unknown) {
       const msg = parseAuthError(err);
       setError(msg);
       throw new Error(msg);
     }
   };
 
-  const deleteAccount = async () => {
-    if (!auth.currentUser) return;
+  const deleteAccount = async (options: DeleteAccountOptions = {}) => {
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
+      throw new Error('No active user session found.');
+    }
+
     setError(null);
+    const uid = currentUser.uid;
+    const providers = getLinkedAuthProviders(currentUser.providerData);
+
     try {
-      const uid = auth.currentUser.uid;
-      // Mark user profile doc deleted
-      const userDocRef = doc(db, 'users', uid);
-      await setDoc(userDocRef, { deleted: true }, { merge: true }).catch(() => {});
-      
-      // Delete from Firebase Auth
-      await deleteUser(auth.currentUser);
+      await executeAccountDeletionWorkflow(
+        {
+          uid,
+          linkedProviders: providers,
+          reauthenticate: async (provider, password) => {
+            await reauthenticateCurrentUser(currentUser, provider, password);
+          },
+          fetchSubcollectionBatchIds: async (subcollection, batchSize) => {
+            const colRef = collection(db, 'users', uid, subcollection);
+            const snap = await getDocs(query(colRef, limit(batchSize)));
+            return snap.docs.map((d) => d.id);
+          },
+          deleteSubcollectionBatch: async (subcollection, docIds) => {
+            const batch = writeBatch(db);
+            for (const docId of docIds) {
+              batch.delete(doc(db, 'users', uid, subcollection, docId));
+            }
+            await batch.commit();
+          },
+          deleteUserProfileDoc: async () => {
+            await deleteDoc(doc(db, 'users', uid));
+          },
+          deleteAuthUser: async () => {
+            await deleteUser(currentUser);
+          },
+          clearLocalData: () => {
+            try {
+              for (const key of LOCAL_STORAGE_PREF_KEYS) {
+                localStorage.removeItem(key);
+              }
+            } catch {
+              // Ignore storage quota/availability restrictions
+            }
+          },
+        },
+        options
+      );
+
       setUser(null);
       setUserProfile(null);
-    } catch (err: any) {
+    } catch (err: unknown) {
       const msg = parseAuthError(err);
       setError(msg);
       throw new Error(msg);
@@ -335,7 +469,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       await updateProfile(user, { displayName: name });
       const userDocRef = doc(db, 'users', user.uid);
-      const path = `users/${user.uid}`;
       await updateDoc(userDocRef, {
         displayName: name,
         updatedAt: new Date().toISOString()
@@ -403,11 +536,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const changePassword = async (newPass: string) => {
-    if (!auth.currentUser) return;
+  const changePassword = async (newPass: string, currentPass?: string) => {
+    const currentUser = auth.currentUser;
+    if (!currentUser) return;
     try {
-      await updatePassword(auth.currentUser, newPass);
-    } catch (err: any) {
+      if (currentPass && getLinkedAuthProviders(currentUser.providerData).includes('password')) {
+        await reauthenticateCurrentUser(currentUser, 'password', currentPass);
+      }
+      await updatePassword(currentUser, newPass);
+    } catch (err: unknown) {
       const msg = parseAuthError(err);
       setError(msg);
       throw new Error(msg);
@@ -435,6 +572,45 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const markDefaultSubjectsSeeded = async () => {
+    if (!user) return;
+    try {
+      const userDocRef = doc(db, 'users', user.uid);
+      const now = new Date().toISOString();
+      await updateDoc(userDocRef, {
+        hasSeededDefaultSubjects: true,
+        updatedAt: now
+      });
+      setUserProfile(prev => prev ? {
+        ...prev,
+        hasSeededDefaultSubjects: true,
+        updatedAt: now
+      } : null);
+    } catch {
+      console.warn('Could not persist default subject initialization flag.');
+    }
+  };
+
+  const applyStreakUpdate = (lastActiveDate: string, streakCount: number) => {
+    setUserProfile(prev => {
+      if (!prev) return null;
+      const currentLongest = Math.max(
+        prev.gamification?.longestStreak || 0,
+        streakCount,
+        ...(prev.gamification?.awardedStreakMilestones || []),
+        0
+      );
+      return {
+        ...prev,
+        lastActiveDate,
+        streakCount,
+        gamification: prev.gamification
+          ? { ...prev.gamification, longestStreak: currentLongest }
+          : prev.gamification,
+      };
+    });
+  };
+
   const refreshProfile = async () => {
     if (user) {
       await syncUserProfile(user);
@@ -446,6 +622,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       value={{
         user,
         userProfile,
+        linkedProviders,
         loading,
         error,
         clearError,
@@ -463,6 +640,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         updatePomodoroSettings,
         changePassword,
         completeOnboarding,
+        markDefaultSubjectsSeeded,
+        applyStreakUpdate,
         refreshProfile,
       }}
     >
@@ -478,4 +657,3 @@ export const useAuth = () => {
   }
   return context;
 };
-

@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { 
   Play, 
   Plus, 
@@ -29,6 +29,7 @@ import { useGamification } from '../../context/GamificationContext';
 import { BadgeIcon } from '../common/BadgeIcon';
 import { ActiveTab, Priority } from '../../types';
 import { MiniCalendar } from '../common/MiniCalendar';
+import { extractLocalDateKey } from '../../utils/dateUtils';
 
 interface DashboardViewProps {
   setActiveTab: (tab: ActiveTab) => void;
@@ -41,15 +42,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ setActiveTab, onOp
     subjects, 
     tasks, 
     todayStudyMinutes, 
-    totalStudyMinutes,
-    focusSessionsCompletedCount,
     completedTasksTodayCount,
     totalCompletedTasksCount,
     todayTasks, 
     upcomingTasks, 
     recentSessions,
     activeGoals,
-    completedGoals,
     setIsGoalModalOpen,
     toggleTaskCompletion,
     startTimer,
@@ -66,42 +64,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ setActiveTab, onOp
     unlockedBadgesCount,
     totalBadgesCount,
     setIsBadgesModalOpen,
-    awardTaskCompletionXp,
-    checkAllMilestones,
-    checkAndAwardDailyBonus
+    awardTaskCompletionXp
   } = useGamification();
 
   const studentName = userProfile?.displayName || 'Student';
-  const streakCount = userProfile?.streakCount || 1;
+  const streakCount = userProfile?.streakCount ?? 0;
   const goalMinutes = userProfile?.dailyGoalMinutes || 120;
   const progressPercent = Math.min(100, Math.round((todayStudyMinutes / goalMinutes) * 100));
-
-  // Automated milestone, streak bonus, and badge checking
-  useEffect(() => {
-    checkAllMilestones({
-      totalSessions: focusSessionsCompletedCount,
-      totalTasks: totalCompletedTasksCount,
-      totalMinutes: totalStudyMinutes,
-      streakCount: userProfile?.streakCount || 1,
-      subjectCount: subjects.length,
-      completedGoalsCount: completedGoals.length,
-    });
-  }, [
-    checkAllMilestones,
-    focusSessionsCompletedCount,
-    totalCompletedTasksCount,
-    totalStudyMinutes,
-    userProfile?.streakCount,
-    subjects.length,
-    completedGoals.length
-  ]);
-
-  // Automated daily goal bonus check
-  useEffect(() => {
-    if (todayStudyMinutes > 0 && goalMinutes > 0) {
-      checkAndAwardDailyBonus(todayStudyMinutes, goalMinutes);
-    }
-  }, [checkAndAwardDailyBonus, todayStudyMinutes, goalMinutes]);
 
   // Dynamic greeting based on current local time
   const getGreeting = () => {
@@ -652,7 +621,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ setActiveTab, onOp
                             </span>
                           )}
                           <span className="text-[10px] font-mono" style={{ color: 'var(--color-text-secondary)' }}>
-                            Due: {task.dueDate}
+                            Due: {extractLocalDateKey(task.dueDate) || task.dueDate}
                           </span>
                         </div>
                       </div>
@@ -747,7 +716,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ setActiveTab, onOp
                           </div>
                           <div className="flex items-center justify-between text-[10px] font-mono" style={{ color: 'var(--color-text-secondary)' }}>
                             <span>{current} / {target} {goal.unit}</span>
-                            {goal.targetDate && <span>Due: {goal.targetDate}</span>}
+                            {goal.targetDate && <span>Due: {extractLocalDateKey(goal.targetDate) || goal.targetDate}</span>}
                           </div>
                         </div>
                       );

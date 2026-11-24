@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { TimerLogoSvg } from '../common/BrandLogo';
 import { ActiveTab } from '../../types';
+import { ALL_BADGES } from '../../utils/gamification';
 
 export interface OnboardingModalProps {
   isOpen: boolean;
@@ -124,7 +125,7 @@ const STEPS: StepData[] = [
       'Completed focus sessions, study time, streaks, XP, levels, and achievements help users see their progress over days and weeks.',
     keyPoints: [
       'Build your daily study streak by hitting your study goals',
-      'Gain XP levels and unlock 15+ student achievement badges',
+      `Gain XP levels and unlock ${ALL_BADGES.length} student achievement badges`,
       'Detailed study charts broken down by subject and date range'
     ],
     visualType: 'track'
@@ -567,7 +568,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                         <CheckSquare className="w-3.5 h-3.5" /> Organized Task Queue
                       </span>
                       <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 font-bold">
-                        +25 XP per task
+                        +20–50 XP per task
                       </span>
                     </div>
                     <div className="space-y-1.5">
@@ -680,7 +681,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                         <div className="text-[10px] text-[var(--color-text-secondary)]">Level 1</div>
                       </div>
                       <div className="p-2 rounded-lg border border-slate-200 dark:border-slate-800">
-                        <div className="text-emerald-600 text-sm font-bold">🏆 3 / 16</div>
+                        <div className="text-emerald-600 text-sm font-bold">🏆 3 / {ALL_BADGES.length}</div>
                         <div className="text-[10px] text-[var(--color-text-secondary)]">Badges Unlocked</div>
                       </div>
                     </div>

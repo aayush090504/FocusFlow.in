@@ -1,33 +1,15 @@
 import { initializeApp } from 'firebase/app';
-import { 
-  getAuth, 
-  GoogleAuthProvider, 
-  signInWithPopup, 
-  signInWithEmailAndPassword, 
-  createUserWithEmailAndPassword, 
-  sendPasswordResetEmail, 
-  signOut, 
-  deleteUser,
-  updateProfile,
-  onAuthStateChanged,
-  User
+import {
+  getAuth,
+  GoogleAuthProvider,
 } from 'firebase/auth';
-import { 
-  getFirestore, 
-  doc, 
+import {
+  getFirestore,
+  doc,
   getDocFromServer,
-  collection,
-  setDoc,
-  getDoc,
-  updateDoc,
-  deleteDoc,
-  query,
-  where,
-  orderBy,
-  onSnapshot,
-  serverTimestamp
 } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
+import { buildSanitizedFirestoreErrorInfo, SanitizedFirestoreErrorInfo } from '../utils/errorUtils';
 
 // Initialize Firebase App
 const app = initializeApp(firebaseConfig);
@@ -52,41 +34,18 @@ export enum OperationType {
   WRITE = 'write',
 }
 
-export interface FirestoreErrorInfo {
-  error: string;
-  operationType: OperationType;
-  path: string | null;
-  authInfo: {
-    userId?: string | null;
-    email?: string | null;
-    emailVerified?: boolean | null;
-    isAnonymous?: boolean | null;
-    tenantId?: string | null;
-    providerInfo?: {
-      providerId?: string | null;
-      email?: string | null;
-    }[];
-  };
-}
+export type FirestoreErrorInfo = SanitizedFirestoreErrorInfo;
 
 export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null): never {
-  const errInfo: FirestoreErrorInfo = {
-    error: error instanceof Error ? error.message : String(error),
-    authInfo: {
-      userId: auth.currentUser?.uid,
-      email: auth.currentUser?.email,
-      emailVerified: auth.currentUser?.emailVerified,
-      isAnonymous: auth.currentUser?.isAnonymous,
-      tenantId: auth.currentUser?.tenantId,
-      providerInfo: auth.currentUser?.providerData?.map(provider => ({
-        providerId: provider.providerId,
-        email: provider.email,
-      })) || []
-    },
-    operationType,
-    path
-  };
-  console.error('Firestore Error: ', JSON.stringify(errInfo));
+  const errInfo = buildSanitizedFirestoreErrorInfo(error, operationType, path, auth.currentUser);
+  if (import.meta.env.DEV) {
+    console.error('Firestore Error:', errInfo);
+  } else {
+    console.error('Firestore operation failed:', {
+      operationType: errInfo.operationType,
+      errorCode: errInfo.errorCode ?? 'unknown',
+    });
+  }
   throw new Error(JSON.stringify(errInfo));
 }
 

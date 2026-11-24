@@ -1,5 +1,6 @@
 import React, { ErrorInfo, ReactNode } from 'react';
 import { AlertTriangle, RotateCcw } from 'lucide-react';
+import { getFriendlyErrorMessage } from '../../utils/errorUtils';
 
 interface Props {
   children: ReactNode;
@@ -27,7 +28,11 @@ export class ErrorBoundary extends React.Component<Props, State> {
   }
 
   public override componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('Uncaught error in Focus Flow:', error, errorInfo);
+    if (import.meta.env.DEV) {
+      console.error('Uncaught error in Focus Flow:', error, errorInfo);
+    } else {
+      console.error('Focus Flow encountered an unexpected rendering error.');
+    }
     this.setState({ error, errorInfo });
   }
 
@@ -45,6 +50,10 @@ export class ErrorBoundary extends React.Component<Props, State> {
         return this.props.fallback;
       }
 
+      const displayMessage = this.state.error
+        ? getFriendlyErrorMessage(this.state.error, 'An unexpected error occurred while loading this view.')
+        : '';
+
       return (
         <div className="min-h-screen flex items-center justify-center p-4 bg-slate-900 text-slate-100">
           <div className="max-w-md w-full p-8 rounded-2xl bg-slate-800 border border-slate-700 shadow-2xl text-center">
@@ -55,14 +64,14 @@ export class ErrorBoundary extends React.Component<Props, State> {
             <h1 className="text-xl font-bold text-white mb-2">
               Something went wrong
             </h1>
-            
+
             <p className="text-sm text-slate-300 mb-6 leading-relaxed">
               Focus Flow encountered an unexpected issue while rendering this view. Your saved data remains safe in the cloud.
             </p>
 
-            {this.state.error?.message && (
-              <div className="p-3 mb-6 rounded-xl bg-slate-900/80 border border-slate-700 text-left font-mono text-xs text-rose-300 overflow-x-auto max-h-24">
-                {this.state.error.message}
+            {displayMessage && (
+              <div className="p-3 mb-6 rounded-xl bg-slate-900/80 border border-slate-700 text-left text-xs text-rose-300 overflow-x-auto max-h-24">
+                {displayMessage}
               </div>
             )}
 

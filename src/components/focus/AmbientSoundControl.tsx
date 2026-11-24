@@ -73,12 +73,12 @@ export const AmbientSoundControl: React.FC<AmbientSoundControlProps> = ({ compac
         }}
       >
         {/* Header & Master Mute */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
             <button
               type="button"
               onClick={toggleMasterSound}
-              className="p-1.5 rounded-lg border text-xs font-semibold transition-colors"
+              className="p-1.5 rounded-lg border text-xs font-semibold transition-colors shrink-0"
               style={{
                 backgroundColor: 'var(--color-bg-surface)',
                 borderColor: 'var(--color-border-default)',
@@ -87,38 +87,38 @@ export const AmbientSoundControl: React.FC<AmbientSoundControlProps> = ({ compac
               title={soundSettings.masterEnabled ? 'Mute all audio' : 'Enable audio'}
               aria-label={soundSettings.masterEnabled ? 'Mute audio' : 'Unmute audio'}
             >
-              {soundSettings.masterEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+              {soundSettings.masterEnabled ? <Volume2 className="w-4 h-4 shrink-0" /> : <VolumeX className="w-4 h-4 shrink-0" />}
             </button>
-            <span className="text-xs font-bold" style={{ color: 'var(--color-text-primary)' }}>
+            <span className="text-xs font-bold truncate" style={{ color: 'var(--color-text-primary)' }}>
               Sound & Ambience
             </span>
           </div>
 
           {/* Tab Switcher in Compact mode */}
-          <div className="flex items-center p-0.5 rounded-lg border text-[11px] font-bold" style={{ backgroundColor: 'var(--color-bg-surface)', borderColor: 'var(--color-border-default)' }}>
+          <div className="flex items-center p-0.5 rounded-lg border text-[11px] font-bold shrink-0" style={{ backgroundColor: 'var(--color-bg-surface)', borderColor: 'var(--color-border-default)' }}>
             <button
               type="button"
               onClick={() => setActiveTab('soundscapes')}
-              className={`px-2 py-0.5 rounded-md transition-all flex items-center gap-1 ${
+              className={`px-2 py-0.5 rounded-md transition-all flex items-center gap-1 whitespace-nowrap ${
                 activeTab === 'soundscapes'
                   ? 'bg-indigo-600 text-white shadow-xs'
                   : 'text-slate-600 dark:text-slate-400'
               }`}
             >
               <span>Sounds</span>
-              {isAmbientPlaying && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />}
+              {isAmbientPlaying && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />}
             </button>
             <button
               type="button"
               onClick={() => setActiveTab('local_music')}
-              className={`px-2 py-0.5 rounded-md transition-all flex items-center gap-1 ${
+              className={`px-2 py-0.5 rounded-md transition-all flex items-center gap-1 whitespace-nowrap ${
                 activeTab === 'local_music'
                   ? 'bg-indigo-600 text-white shadow-xs'
                   : 'text-slate-600 dark:text-slate-400'
               }`}
             >
               <span>Music</span>
-              {isLocalMusicPlaying && <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />}
+              {isLocalMusicPlaying && <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse shrink-0" />}
             </button>
           </div>
         </div>
@@ -199,79 +199,32 @@ export const AmbientSoundControl: React.FC<AmbientSoundControlProps> = ({ compac
       }}
     >
       {/* Header with Master Audio Toggle and Tabs */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div className="flex items-center gap-2.5 min-w-0">
-          <div 
-            className="w-8 h-8 rounded-xl flex items-center justify-center border shrink-0"
-            style={{
-              backgroundColor: 'var(--color-accent-subtle)',
-              borderColor: 'var(--color-border-default)',
-              color: 'var(--color-accent-primary)'
-            }}
-          >
-            <Headphones className="w-4 h-4" />
-          </div>
-          <div className="min-w-0">
-            <h3 className="text-sm font-bold truncate">Sound & Ambience</h3>
-            <p className="text-[11px] truncate sm:whitespace-normal" style={{ color: 'var(--color-text-secondary)' }}>
-              Procedural audio soundscapes and local study music
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-1.5 sm:gap-2 w-full sm:w-auto min-w-0">
-          {/* Segmented Mode Selector */}
-          <div 
-            className="p-1 rounded-2xl border flex items-center gap-1 text-xs font-bold flex-1 sm:flex-initial min-w-0"
-            style={{
-              backgroundColor: 'var(--color-bg-subtle)',
-              borderColor: 'var(--color-border-default)'
-            }}
-          >
-            <button
-              type="button"
-              onClick={() => setActiveTab('soundscapes')}
-              className={`flex-1 sm:flex-initial justify-center px-2 sm:px-3 py-1.5 rounded-xl transition-all flex items-center gap-1 sm:gap-1.5 touch-target min-w-0 ${
-                activeTab === 'soundscapes'
-                  ? 'bg-indigo-600 text-white shadow-xs'
-                  : 'hover:text-indigo-600 dark:hover:text-indigo-400'
-              }`}
+      <div className="flex flex-col gap-3">
+        <div className="flex items-center justify-between gap-2 min-w-0">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div 
+              className="w-8 h-8 rounded-xl flex items-center justify-center border shrink-0"
               style={{
-                color: activeTab === 'soundscapes' ? '#ffffff' : 'var(--color-text-secondary)'
+                backgroundColor: 'var(--color-accent-subtle)',
+                borderColor: 'var(--color-border-default)',
+                color: 'var(--color-accent-primary)'
               }}
             >
-              <Sparkles className="w-3.5 h-3.5 shrink-0" />
-              <span className="truncate text-[11px] sm:text-xs">Soundscapes</span>
-              {isAmbientPlaying && (
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
-              )}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setActiveTab('local_music')}
-              className={`flex-1 sm:flex-initial justify-center px-2 sm:px-3 py-1.5 rounded-xl transition-all flex items-center gap-1 sm:gap-1.5 touch-target min-w-0 ${
-                activeTab === 'local_music'
-                  ? 'bg-indigo-600 text-white shadow-xs'
-                  : 'hover:text-indigo-600 dark:hover:text-indigo-400'
-              }`}
-              style={{
-                color: activeTab === 'local_music' ? '#ffffff' : 'var(--color-text-secondary)'
-              }}
-            >
-              <Music className="w-3.5 h-3.5 shrink-0" />
-              <span className="truncate text-[11px] sm:text-xs">Local Music</span>
-              {isLocalMusicPlaying && (
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
-              )}
-            </button>
+              <Headphones className="w-4 h-4 shrink-0" />
+            </div>
+            <div className="min-w-0">
+              <h3 className="text-sm font-bold truncate">Sound & Ambience</h3>
+              <p className="text-[11px] truncate" style={{ color: 'var(--color-text-secondary)' }}>
+                Procedural audio soundscapes and local study music
+              </p>
+            </div>
           </div>
 
           {/* Master Mute Toggle */}
           <button
             type="button"
             onClick={toggleMasterSound}
-            className="flex items-center justify-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl border text-xs font-semibold transition-colors touch-target shrink-0"
+            className="flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs font-semibold transition-colors touch-target shrink-0"
             style={{
               backgroundColor: 'var(--color-bg-subtle)',
               borderColor: 'var(--color-border-default)',
@@ -283,13 +236,60 @@ export const AmbientSoundControl: React.FC<AmbientSoundControlProps> = ({ compac
             {soundSettings.masterEnabled ? (
               <>
                 <Volume2 className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
-                <span className="hidden md:inline">Audio On</span>
+                <span className="hidden sm:inline">Audio On</span>
               </>
             ) : (
               <>
                 <VolumeX className="w-3.5 h-3.5 text-rose-500 shrink-0" />
-                <span className="hidden md:inline">Muted</span>
+                <span className="hidden sm:inline">Muted</span>
               </>
+            )}
+          </button>
+        </div>
+
+        {/* Segmented Mode Selector */}
+        <div 
+          className="p-1 rounded-2xl border grid grid-cols-2 gap-1 text-xs font-bold w-full min-w-0"
+          style={{
+            backgroundColor: 'var(--color-bg-subtle)',
+            borderColor: 'var(--color-border-default)'
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => setActiveTab('soundscapes')}
+            className={`w-full justify-center px-2.5 py-1.5 rounded-xl transition-all flex items-center gap-1.5 touch-target min-w-0 overflow-hidden ${
+              activeTab === 'soundscapes'
+                ? 'bg-indigo-600 text-white shadow-xs'
+                : 'hover:text-indigo-600 dark:hover:text-indigo-400'
+            }`}
+            style={{
+              color: activeTab === 'soundscapes' ? '#ffffff' : 'var(--color-text-secondary)'
+            }}
+          >
+            <Sparkles className="w-3.5 h-3.5 shrink-0" />
+            <span className="truncate text-[11px] sm:text-xs">Soundscapes</span>
+            {isAmbientPlaying && (
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+            )}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('local_music')}
+            className={`w-full justify-center px-2.5 py-1.5 rounded-xl transition-all flex items-center gap-1.5 touch-target min-w-0 overflow-hidden ${
+              activeTab === 'local_music'
+                ? 'bg-indigo-600 text-white shadow-xs'
+                : 'hover:text-indigo-600 dark:hover:text-indigo-400'
+            }`}
+            style={{
+              color: activeTab === 'local_music' ? '#ffffff' : 'var(--color-text-secondary)'
+            }}
+          >
+            <Music className="w-3.5 h-3.5 shrink-0" />
+            <span className="truncate text-[11px] sm:text-xs">Local Music</span>
+            {isLocalMusicPlaying && (
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
             )}
           </button>
         </div>
@@ -312,7 +312,7 @@ export const AmbientSoundControl: React.FC<AmbientSoundControlProps> = ({ compac
               )}
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2" role="radiogroup" aria-label="Ambient sound options">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-2" role="radiogroup" aria-label="Ambient sound options">
               {AMBIENT_SOUND_OPTIONS.map((opt) => {
                 const isSelected = soundSettings.ambientType === opt.id;
                 return (
@@ -323,7 +323,7 @@ export const AmbientSoundControl: React.FC<AmbientSoundControlProps> = ({ compac
                     aria-checked={isSelected}
                     onClick={() => handleSelectAmbient(opt.id)}
                     disabled={!soundSettings.masterEnabled}
-                    className={`p-2.5 rounded-2xl border text-left transition-all flex items-start gap-2.5 touch-target ${
+                    className={`w-full min-w-0 overflow-hidden p-2.5 rounded-2xl border text-left transition-all flex items-start gap-2.5 touch-target ${
                       isSelected 
                         ? 'border-indigo-500 ring-2 ring-indigo-500/20 shadow-xs' 
                         : 'hover:border-slate-300 dark:hover:border-slate-700'
@@ -333,7 +333,9 @@ export const AmbientSoundControl: React.FC<AmbientSoundControlProps> = ({ compac
                       borderColor: isSelected ? 'var(--color-accent-primary)' : 'var(--color-border-default)',
                     }}
                   >
-                    <div className="mt-0.5">{getAmbientIcon(opt.id)}</div>
+                    <div className="mt-0.5 shrink-0 w-5 h-5 flex items-center justify-center">
+                      {getAmbientIcon(opt.id)}
+                    </div>
                     <div className="min-w-0 flex-1">
                       <div className="text-xs font-bold truncate" style={{ color: isSelected ? 'var(--color-accent-primary)' : 'var(--color-text-primary)' }}>
                         {opt.label}
@@ -357,16 +359,16 @@ export const AmbientSoundControl: React.FC<AmbientSoundControlProps> = ({ compac
                 borderColor: 'var(--color-border-default)'
               }}
             >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="p-1.5 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
+              <div className="flex items-center justify-between gap-2 min-w-0">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="p-1.5 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 shrink-0">
                     {getAmbientIcon(soundSettings.ambientType)}
                   </div>
-                  <div>
-                    <span className="text-xs font-bold block" style={{ color: 'var(--color-text-primary)' }}>
+                  <div className="min-w-0">
+                    <span className="text-xs font-bold block truncate" style={{ color: 'var(--color-text-primary)' }}>
                       {currentOption.label}
                     </span>
-                    <span className="text-[10px]" style={{ color: 'var(--color-text-secondary)' }}>
+                    <span className="text-[10px] block truncate" style={{ color: 'var(--color-text-secondary)' }}>
                       {isAmbientPlaying ? 'Active soundscape' : 'Ready to play'}
                     </span>
                   </div>
@@ -449,9 +451,9 @@ export const AmbientSoundControl: React.FC<AmbientSoundControlProps> = ({ compac
         />
 
         {/* Audio Cues Preview */}
-        <div className="pt-2 flex items-center justify-between gap-2">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Audio Cues</span>
-          <div className="flex items-center gap-1.5">
+        <div className="pt-2 flex flex-wrap items-center justify-between gap-2">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 shrink-0">Audio Cues</span>
+          <div className="flex flex-wrap items-center gap-1.5">
             <button
               type="button"
               onClick={() => playCue('session_start')}

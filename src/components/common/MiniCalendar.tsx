@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   ChevronLeft, 
   ChevronRight, 
@@ -14,8 +14,14 @@ import {
   ListTodo
 } from 'lucide-react';
 import { useStudy } from '../../context/StudyContext';
+import { useGamification } from '../../context/GamificationContext';
 import { useAriaAnnounce } from './AriaLiveAnnouncer';
 import { Task, Priority } from '../../types';
+import {
+  formatLocalDateKey,
+  parseLocalDateKey,
+  extractLocalDateKey,
+} from '../../utils/dateUtils';
 
 interface MiniCalendarProps {
   onSelectDate?: (dateStr: string | null) => void;
@@ -27,16 +33,12 @@ interface MiniCalendarProps {
 
 // Format Date object to local YYYY-MM-DD
 export function formatLocalDateToKey(d: Date): string {
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
+  return formatLocalDateKey(d);
 }
 
 // Parse YYYY-MM-DD safely into local Date
 export function parseLocalKeyToDate(dateStr: string): Date {
-  const [y, m, d] = dateStr.split('-').map(Number);
-  return new Date(y, (m || 1) - 1, d || 1);
+  return parseLocalDateKey(dateStr);
 }
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -57,15 +59,38 @@ export const MiniCalendar: React.FC<MiniCalendarProps> = ({
     setSelectedTaskForEdit 
   } = useStudy();
 
+  const { awardTaskCompletionXp } = useGamification();
   const { announce } = useAriaAnnounce();
 
-  // Internal state for current viewing year and month
-  const today = useMemo(() => new Date(), []);
-  const todayKey = useMemo(() => formatLocalDateToKey(today), [today]);
+  // Track current local day so midnight transitions update today's highlight without remounting
+  const [todayKey, setTodayKey] = useState<string>(() => formatLocalDateToKey(new Date()));
 
-  const [currentYear, setCurrentYear] = useState<number>(today.getFullYear());
-  const [currentMonth, setCurrentMonth] = useState<number>(today.getMonth()); // 0-indexed (0 = Jan, 11 = Dec)
-  const [internalSelectedDate, setInternalSelectedDate] = useState<string | null>(todayKey);
+  useEffect(() => {
+    const syncToday = () => {
+      const nextKey = formatLocalDateToKey(new Date());
+      setTodayKey(prev => (prev === nextKey ? prev : nextKey));
+    };
+
+    const interval = setInterval(syncToday, 60000);
+    const handleVisibilityOrFocus = () => {
+      if (document.visibilityState === 'visible') {
+        syncToday();
+      }
+    };
+
+    window.addEventListener('focus', syncToday);
+    document.addEventListener('visibilitychange', handleVisibilityOrFocus);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', syncToday);
+      document.removeEventListener('visibilitychange', handleVisibilityOrFocus);
+    };
+  }, []);
+
+  const [currentYear, setCurrentYear] = useState<number>(() => new Date().getFullYear());
+  const [currentMonth, setCurrentMonth] = useState<number>(() => new Date().getMonth()); // 0-indexed (0 = Jan, 11 = Dec)
+  const [internalSelectedDate, setInternalSelectedDate] = useState<string | null>(() => formatLocalDateToKey(new Date()));
 
   const selectedDate = controlledSelectedDate !== undefined ? controlledSelectedDate : internalSelectedDate;
 
@@ -74,8 +99,8 @@ export const MiniCalendar: React.FC<MiniCalendarProps> = ({
     const map = new Map<string, Task[]>();
     tasks.forEach(task => {
       if (task.dueDate) {
-        // Support YYYY-MM-DD directly or extract ISO date string portion
-        const dateKey = task.dueDate.split('T')[0];
+        // Support YYYY-MM-DD directly or extract local date key from ISO timestamps
+        const dateKey = extractLocalDateKey(task.dueDate);
         const existing = map.get(dateKey) || [];
         existing.push(task);
         map.set(dateKey, existing);
@@ -532,7 +557,11 @@ export const MiniCalendar: React.FC<MiniCalendarProps> = ({
                       <button
                         type="button"
                         onClick={() => {
+                          const isNowCompleting = task.status !== 'completed';
                           toggleTaskCompletion(task.id);
+                          if (isNowCompleting) {
+                            awardTaskCompletionXp(task.id, task.priority);
+                          }
                           announce(isCompleted ? `Marked ${task.title} incomplete` : `Completed ${task.title}`);
                         }}
                         className="transition-colors shrink-0"

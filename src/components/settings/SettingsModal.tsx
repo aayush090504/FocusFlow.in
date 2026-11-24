@@ -32,6 +32,7 @@ import { useToast } from '../../context/ToastContext';
 import { useSound, AMBIENT_SOUND_OPTIONS } from '../../context/SoundContext';
 import { ThemeMode, NotificationSettings, AmbientSoundType } from '../../types';
 import { FeedbackSection } from './FeedbackSection';
+import { formatLocalDateKey } from '../../utils/dateUtils';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -60,6 +61,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const { 
     user, 
     userProfile, 
+    linkedProviders,
     updateDailyGoal, 
     updateDisplayName, 
     updateAvatar, 
@@ -110,6 +112,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [notificationSuccess, setNotificationSuccess] = useState(false);
 
   // Security States
+  const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -121,8 +124,18 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   // Danger Zone States
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteInputText, setDeleteInputText] = useState('');
+  const [deleteCurrentPassword, setDeleteCurrentPassword] = useState('');
+  const [deleteAuthMethod, setDeleteAuthMethod] = useState<'password' | 'google.com'>(
+    linkedProviders.includes('password') ? 'password' : 'google.com'
+  );
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (linkedProviders.length > 0 && !linkedProviders.includes(deleteAuthMethod)) {
+      setDeleteAuthMethod(linkedProviders[0]);
+    }
+  }, [linkedProviders, deleteAuthMethod]);
 
   useEffect(() => {
     if (userProfile) {
@@ -209,8 +222,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     setPassError(null);
     setIsChangingPass(true);
     try {
-      await changePassword(newPassword);
+      await changePassword(newPassword, currentPassword || undefined);
       setPassSuccess(true);
+      setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
       showSuccess('Password changed successfully.');
@@ -250,7 +264,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `focusflow-study-data-${new Date().toISOString().split('T')[0]}.json`;
+      a.download = `focusflow-study-data-${formatLocalDateKey()}.json`;
       a.click();
       URL.revokeObjectURL(url);
       showSuccess('Study data exported successfully.');
@@ -259,18 +273,33 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     }
   };
 
+  const requiresPasswordForDelete =
+    deleteAuthMethod === 'password' && linkedProviders.includes('password');
+  const canConfirmDelete =
+    deleteInputText === 'DELETE' &&
+    (!requiresPasswordForDelete || deleteCurrentPassword.length > 0) &&
+    !isDeleting;
+
   const handleDeleteAccount = async () => {
-    if (deleteInputText !== 'DELETE') return;
+    if (!canConfirmDelete) return;
     setIsDeleting(true);
     setDeleteError(null);
     try {
-      await deleteAccount();
-      showInfo('Your account has been deleted.');
+      await deleteAccount({
+        password: requiresPasswordForDelete ? deleteCurrentPassword : undefined,
+        preferredProvider: deleteAuthMethod,
+      });
+      setDeleteCurrentPassword('');
+      setDeleteInputText('');
+      showInfo('Your account and study workspace have been deleted.');
       onClose();
-    } catch (err: any) {
-      const msg = err?.message || 'Failed to delete account. You may need to log out and log in again before deleting.';
+    } catch (err: unknown) {
+      const msg =
+        err instanceof Error && err.message
+          ? err.message
+          : 'Failed to delete account. Please verify your credentials and retry.';
       setDeleteError(msg);
-      showError(err, 'Failed to delete account.');
+      showError(err, 'Account deletion did not complete.');
       setIsDeleting(false);
     }
   };
@@ -395,7 +424,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       Focus Flow Member
                     </span>
                     <span className="text-[10px] font-medium" style={{ color: 'var(--color-text-muted)' }}>
-                      🔥 {userProfile?.streakCount || 1} day streak
+                      🔥 {userProfile?.streakCount ?? 0} day streak
                     </span>
                   </div>
                 </div>
@@ -1431,6 +1460,27 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 </div>
 
                 <form onSubmit={handleChangePassword} className="space-y-3">
+                  {linkedProviders.includes('password') && (
+                    <div>
+                      <label className="block text-[11px] font-bold mb-1" style={{ color: 'var(--color-text-secondary)' }}>
+                        Current Password (required if not recently logged in)
+                      </label>
+                      <input
+                        type={showPassword ? 'text' : 'password'}
+                        value={currentPassword}
+                        onChange={(e) => setCurrentPassword(e.target.value)}
+                        placeholder="Enter current password"
+                        autoComplete="current-password"
+                        className="w-full px-3 py-2 rounded-lg border text-xs"
+                        style={{
+                          backgroundColor: 'var(--color-bg-surface)',
+                          borderColor: 'var(--color-border-default)',
+                          color: 'var(--color-text-primary)'
+                        }}
+                      />
+                    </div>
+                  )}
+
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                       <label className="block text-[11px] font-bold mb-1" style={{ color: 'var(--color-text-secondary)' }}>
@@ -1442,6 +1492,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                           value={newPassword}
                           onChange={(e) => setNewPassword(e.target.value)}
                           placeholder="Min 6 characters"
+                          autoComplete="new-password"
                           className="w-full px-3 py-2 pr-8 rounded-lg border text-xs"
                           style={{
                             backgroundColor: 'var(--color-bg-surface)',
@@ -1468,6 +1519,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
                         placeholder="Re-enter password"
+                        autoComplete="new-password"
                         className="w-full px-3 py-2 rounded-lg border text-xs"
                         style={{
                           backgroundColor: 'var(--color-bg-surface)',
@@ -1635,13 +1687,55 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   <div className="p-4 bg-rose-50 dark:bg-rose-950/50 border border-rose-300 dark:border-rose-800 rounded-xl space-y-3">
                     <div className="flex items-start gap-2.5 text-rose-900 dark:text-rose-200">
                       <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
-                      <div className="text-xs">
-                        <p className="font-bold">Are you absolutely sure?</p>
-                        <p className="text-rose-700 dark:text-rose-300 mt-0.5">
-                          This action will permanently purge all your study data. Type <span className="font-mono font-bold bg-white dark:bg-slate-900 px-1.5 py-0.5 rounded border border-rose-300">DELETE</span> to confirm.
+                      <div className="text-xs space-y-1">
+                        <p className="font-bold">Verify your identity to permanently delete your account</p>
+                        <p className="text-rose-700 dark:text-rose-300">
+                          All profile data, subjects, tasks, goals, and focus history will be purged. Previously submitted support feedback tickets remain immutable in support records.
+                        </p>
+                        <p className="text-rose-700 dark:text-rose-300">
+                          Type <span className="font-mono font-bold bg-white dark:bg-slate-900 px-1.5 py-0.5 rounded border border-rose-300">DELETE</span> to confirm.
                         </p>
                       </div>
                     </div>
+
+                    {linkedProviders.includes('password') && linkedProviders.includes('google.com') && (
+                      <div className="space-y-1">
+                        <label className="block text-[11px] font-bold text-rose-900 dark:text-rose-200">
+                          Re-authentication Method
+                        </label>
+                        <div className="grid grid-cols-2 gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setDeleteAuthMethod('password');
+                              setDeleteError(null);
+                            }}
+                            className={`px-3 py-1.5 rounded-lg border text-xs font-bold transition-colors ${
+                              deleteAuthMethod === 'password'
+                                ? 'bg-rose-600 text-white border-rose-600'
+                                : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border-rose-300'
+                            }`}
+                          >
+                            Password
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setDeleteAuthMethod('google.com');
+                              setDeleteCurrentPassword('');
+                              setDeleteError(null);
+                            }}
+                            className={`px-3 py-1.5 rounded-lg border text-xs font-bold transition-colors ${
+                              deleteAuthMethod === 'google.com'
+                                ? 'bg-rose-600 text-white border-rose-600'
+                                : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border-rose-300'
+                            }`}
+                          >
+                            Google Account
+                          </button>
+                        </div>
+                      </div>
+                    )}
 
                     <input
                       type="text"
@@ -1651,8 +1745,23 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-rose-300 dark:border-rose-700 rounded-lg text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-rose-500"
                     />
 
+                    {requiresPasswordForDelete ? (
+                      <input
+                        type="password"
+                        value={deleteCurrentPassword}
+                        onChange={(e) => setDeleteCurrentPassword(e.target.value)}
+                        placeholder="Enter your current password to verify"
+                        autoComplete="current-password"
+                        className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-rose-300 dark:border-rose-700 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-rose-500"
+                      />
+                    ) : (
+                      <p className="text-[11px] text-rose-700 dark:text-rose-300">
+                        A Google verification popup will open before any data is deleted.
+                      </p>
+                    )}
+
                     {deleteError && (
-                      <div className="text-xs text-rose-600 dark:text-rose-400 font-medium">
+                      <div className="text-xs text-rose-700 dark:text-rose-300 font-medium bg-white/80 dark:bg-slate-900/70 p-2.5 rounded-lg border border-rose-300 dark:border-rose-700">
                         {deleteError}
                       </div>
                     )}
@@ -1660,22 +1769,24 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     <div className="flex items-center gap-2 justify-end pt-1">
                       <button
                         type="button"
+                        disabled={isDeleting}
                         onClick={() => {
                           setShowDeleteConfirm(false);
                           setDeleteInputText('');
+                          setDeleteCurrentPassword('');
                           setDeleteError(null);
                         }}
-                        className="px-3.5 py-2 rounded-xl border border-slate-300 bg-white dark:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50"
+                        className="px-3.5 py-2 rounded-xl border border-slate-300 bg-white dark:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 disabled:opacity-50"
                       >
                         Cancel
                       </button>
                       <button
                         type="button"
-                        disabled={deleteInputText !== 'DELETE' || isDeleting}
+                        disabled={!canConfirmDelete}
                         onClick={handleDeleteAccount}
                         className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-xs disabled:opacity-50"
                       >
-                        {isDeleting ? 'Deleting Data...' : 'Permanently Delete'}
+                        {isDeleting ? 'Verifying & Deleting...' : deleteError ? 'Retry Deletion' : 'Permanently Delete'}
                       </button>
                     </div>
                   </div>

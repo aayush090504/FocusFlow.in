@@ -234,26 +234,26 @@ export const LocalMusicPlayer: React.FC<LocalMusicPlayerProps> = ({ compact = fa
       />
 
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2.5">
+      <div className="flex flex-wrap items-center justify-between gap-2.5">
+        <div className="flex items-center gap-2.5 min-w-0 flex-1">
           <div 
-            className="w-8 h-8 rounded-xl flex items-center justify-center border"
+            className="w-8 h-8 rounded-xl flex items-center justify-center border shrink-0"
             style={{
               backgroundColor: 'var(--color-accent-subtle)',
               borderColor: 'var(--color-border-default)',
               color: 'var(--color-accent-primary)'
             }}
           >
-            <Music className="w-4 h-4" />
+            <Music className="w-4 h-4 shrink-0" />
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h3 className="text-sm font-bold">Local Music Player</h3>
-              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                100% Private (No Uploads)
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <h3 className="text-sm font-bold truncate">Local Music Player</h3>
+              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 shrink-0">
+                100% Private
               </span>
             </div>
-            <p className="text-[11px]" style={{ color: 'var(--color-text-secondary)' }}>
+            <p className="text-[11px] leading-snug" style={{ color: 'var(--color-text-secondary)' }}>
               Play your study playlist, lofi beats, or audiobooks directly from your device
             </p>
           </div>
@@ -263,7 +263,7 @@ export const LocalMusicPlayer: React.FC<LocalMusicPlayerProps> = ({ compact = fa
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="px-3 py-1.5 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition-colors touch-target"
+            className="px-3 py-1.5 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition-colors touch-target shrink-0"
             style={{
               backgroundColor: 'var(--color-bg-subtle)',
               borderColor: 'var(--color-border-default)',
@@ -272,7 +272,7 @@ export const LocalMusicPlayer: React.FC<LocalMusicPlayerProps> = ({ compact = fa
             title="Change current audio track"
             aria-label="Change current track"
           >
-            <FolderOpen className="w-3.5 h-3.5 text-indigo-500" />
+            <FolderOpen className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
             <span>Change Track</span>
           </button>
         )}

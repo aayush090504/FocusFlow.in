@@ -38,7 +38,8 @@ export const BadgesModal: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');
 
-  const userStreak = userProfile?.streakCount || 1;
+  const userStreak = userProfile?.streakCount ?? 0;
+  const longestStreak = Math.max(userStreak, gamification.longestStreak || 0);
   const awardedStreakMilestones = gamification.awardedStreakMilestones || [];
 
   const categories: { id: BadgeCategory | 'all'; label: string; icon: React.FC<{ className?: string }> }[] = [
@@ -204,6 +205,9 @@ export const BadgesModal: React.FC = () => {
                   </span>
                   <span className="text-[10px] sm:text-[11px] truncate" style={{ color: 'var(--color-text-secondary)' }}>
                     Streak: <strong className="text-amber-500 font-bold">{userStreak}d</strong>
+                    {longestStreak > userStreak && (
+                      <span className="ml-1 opacity-80">(Best: {longestStreak}d)</span>
+                    )}
                   </span>
                 </div>
               </div>
@@ -346,7 +350,11 @@ export const BadgesModal: React.FC = () => {
                       Milestone Streak Bonuses (One-Time Rewards)
                     </h3>
                     <p className="text-[11px]" style={{ color: 'var(--color-text-secondary)' }}>
-                      Current active streak: <strong className="text-amber-500 font-bold">{userStreak} {userStreak === 1 ? 'day' : 'days'}</strong>. Unlock massive XP boosts as you maintain consistency!
+                      Current active streak: <strong className="text-amber-500 font-bold">{userStreak} {userStreak === 1 ? 'day' : 'days'}</strong>
+                      {longestStreak > userStreak && (
+                        <> • Longest streak: <strong className="text-amber-500 font-bold">{longestStreak} {longestStreak === 1 ? 'day' : 'days'}</strong></>
+                      )}
+                      . Unlock massive XP boosts as you maintain consistency!
                     </p>
                   </div>
                 </div>
@@ -355,7 +363,7 @@ export const BadgesModal: React.FC = () => {
               {/* Streak Milestone Cards Grid */}
               <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5">
                 {STREAK_BONUSES.map((bonus) => {
-                  const isClaimed = awardedStreakMilestones.includes(bonus.streakDays) || userStreak >= bonus.streakDays;
+                  const isClaimed = awardedStreakMilestones.includes(bonus.streakDays) || longestStreak >= bonus.streakDays;
                   return (
                     <div
                       key={bonus.streakDays}

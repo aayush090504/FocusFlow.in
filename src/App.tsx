@@ -292,10 +292,10 @@ const AuthenticatedWorkspace: React.FC<AuthenticatedWorkspaceProps> = ({
     resumeTimer,
     startTimer,
     resetTimer,
-    focusSessions,
-    tasks,
+    focusSessionsCompletedCount,
+    totalCompletedTasksCount,
     goals,
-    subjects,
+    studiedSubjectCount,
     totalStudyMinutes,
     todayStudyMinutes
   } = useStudy();
@@ -337,28 +337,34 @@ const AuthenticatedWorkspace: React.FC<AuthenticatedWorkspaceProps> = ({
   // Keep milestones and achievements automatically checked and synchronized
   useEffect(() => {
     if (!userProfile) return;
-    const completedTasksCount = tasks.filter(t => t.status === 'completed').length;
+    let cancelled = false;
     const completedGoalsCount = goals.filter(g => g.status === 'completed').length;
-    const streakCount = userProfile.streakCount || 1;
-    const subjectCount = subjects.length;
+    const streakCount = userProfile.streakCount ?? 0;
 
-    checkAllMilestones({
-      totalSessions: focusSessions.length,
-      totalTasks: completedTasksCount,
-      totalMinutes: totalStudyMinutes,
-      streakCount,
-      subjectCount,
-      completedGoalsCount,
-    });
+    const syncMilestones = async () => {
+      await checkAllMilestones({
+        totalSessions: focusSessionsCompletedCount,
+        totalTasks: totalCompletedTasksCount,
+        totalMinutes: totalStudyMinutes,
+        streakCount,
+        subjectCount: studiedSubjectCount,
+        completedGoalsCount,
+      });
 
-    if (userProfile.dailyGoalMinutes && todayStudyMinutes >= userProfile.dailyGoalMinutes) {
-      checkAndAwardDailyBonus(todayStudyMinutes, userProfile.dailyGoalMinutes);
-    }
+      if (!cancelled && userProfile.dailyGoalMinutes && todayStudyMinutes >= userProfile.dailyGoalMinutes) {
+        await checkAndAwardDailyBonus(todayStudyMinutes, userProfile.dailyGoalMinutes);
+      }
+    };
+
+    void syncMilestones();
+    return () => {
+      cancelled = true;
+    };
   }, [
-    focusSessions.length,
-    tasks,
+    focusSessionsCompletedCount,
+    totalCompletedTasksCount,
     goals,
-    subjects.length,
+    studiedSubjectCount,
     totalStudyMinutes,
     todayStudyMinutes,
     userProfile,

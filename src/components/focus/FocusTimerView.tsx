@@ -151,6 +151,7 @@ export const FocusTimerView: React.FC = () => {
   const handleFinish = async () => {
     try {
       const result = await finishCurrentTimerSession(sessionNotes);
+      if (result.ignored) return;
       if (result.sessionId && result.durationMinutes >= 1) {
         showSuccess(`Logged ${result.durationMinutes} focus minutes (+${result.durationMinutes} XP)! 🎉`, 'Session Saved');
       } else if (result.durationMinutes < 1 && !isBreak) {
@@ -693,7 +694,7 @@ export const FocusTimerView: React.FC = () => {
                 }}
               >
                 <option value="">No specific task</option>
-                {tasks.filter(t => t.status === 'pending').map(t => (
+                {tasks.filter(t => t.status !== 'completed').map(t => (
                   <option key={t.id} value={t.id}>{t.title}</option>
                 ))}
               </select>

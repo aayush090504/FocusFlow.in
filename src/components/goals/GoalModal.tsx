@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { X, Target, Calendar, BookOpen, Hash, AlertCircle, CheckCircle } from 'lucide-react';
+import confetti from 'canvas-confetti';
 import { useStudy } from '../../context/StudyContext';
 import { useToast } from '../../context/ToastContext';
 import { Goal } from '../../types';
+import { formatLocalDateKey, extractLocalDateKey } from '../../utils/dateUtils';
 
 interface GoalModalProps {
   isOpen: boolean;
@@ -53,13 +55,13 @@ export const GoalModal: React.FC<GoalModalProps> = ({ isOpen, onClose, goalToEdi
       }
 
       setSubjectId(goalToEdit.subjectId || '');
-      setTargetDate(goalToEdit.targetDate || '');
+      setTargetDate(extractLocalDateKey(goalToEdit.targetDate) || goalToEdit.targetDate || '');
       setNotes(goalToEdit.notes || '');
     } else {
       // Default new goal: Target date in 7 days
       const d = new Date();
       d.setDate(d.getDate() + 7);
-      const defaultDate = d.toISOString().split('T')[0];
+      const defaultDate = formatLocalDateKey(d);
 
       setTitle('');
       setTargetValue(10);
@@ -96,7 +98,9 @@ export const GoalModal: React.FC<GoalModalProps> = ({ isOpen, onClose, goalToEdi
     setError(null);
 
     try {
+      const isNowComplete = numCurrent >= numTarget;
       if (goalToEdit) {
+        const wasCompleted = goalToEdit.status === 'completed';
         await updateGoal(goalToEdit.id, {
           title: title.trim(),
           targetValue: numTarget,
@@ -105,7 +109,17 @@ export const GoalModal: React.FC<GoalModalProps> = ({ isOpen, onClose, goalToEdi
           subjectId: subjectId || '',
           targetDate: targetDate || '',
           notes: notes.trim(),
+          ...(isNowComplete && !wasCompleted
+            ? { status: 'completed' as const, completedAt: new Date().toISOString() }
+            : {}),
         });
+        if (isNowComplete && !wasCompleted) {
+          confetti({
+            particleCount: 70,
+            spread: 60,
+            origin: { y: 0.7 }
+          });
+        }
         showSuccess(`Goal "${title.trim()}" updated.`);
       } else {
         await addGoal({
@@ -117,6 +131,13 @@ export const GoalModal: React.FC<GoalModalProps> = ({ isOpen, onClose, goalToEdi
           targetDate: targetDate || '',
           notes: notes.trim(),
         });
+        if (isNowComplete) {
+          confetti({
+            particleCount: 70,
+            spread: 60,
+            origin: { y: 0.7 }
+          });
+        }
         showSuccess(`Goal "${title.trim()}" created! Stay focused!`);
       }
       onClose();

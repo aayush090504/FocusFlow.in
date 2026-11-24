@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, useMemo, useCallback, useRef } from 'react';
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc, updateDoc, increment, arrayUnion } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from './AuthContext';
 import { useSound } from './SoundContext';
@@ -18,6 +18,7 @@ import {
   calculateTaskXp, 
   XP_REWARDS 
 } from '../utils/gamification';
+import { formatLocalDateKey } from '../utils/dateUtils';
 
 export interface DisplayBadge extends BadgeDefinition {
   isUnlocked: boolean;
@@ -62,6 +63,7 @@ const DEFAULT_GAMIFICATION: GamificationProfile = {
   notifiedStreakMilestones: [],
   dailyBonusAwardedDates: [],
   streakBonusAwardedDates: [],
+  longestStreak: 0,
 };
 
 const GamificationContext = createContext<GamificationContextType | undefined>(undefined);
@@ -78,8 +80,13 @@ export const GamificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const gamificationRef = useRef<GamificationProfile>(gamification);
   gamificationRef.current = gamification;
 
-  // Track initialization state to prevent race conditions during auth/profile loading
+  // Serialize all gamification state mutations & Firestore updates to prevent lost XP/badges
+  const mutationQueueRef = useRef<Promise<unknown>>(Promise.resolve());
+  const firestoreWriteQueueRef = useRef<Promise<void>>(Promise.resolve());
+
+  // Track initialization state & hydrated UID to prevent stale clobbering across auth/profile updates
   const isInitializedRef = useRef<boolean>(false);
+  const hydratedUidRef = useRef<string | null>(null);
 
   // In-memory sets to guarantee notification deduplication across session
   const notifiedBadgesRef = useRef<Set<string>>(new Set());
@@ -100,14 +107,28 @@ export const GamificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     totalSessions: 0,
     totalTasks: 0,
     totalMinutes: 0,
-    streakCount: userProfile?.streakCount || 0,
+    streakCount: userProfile?.streakCount ?? 0,
     subjectCount: 0,
     completedGoalsCount: 0,
   });
 
-  // Sync with userProfile when auth updates and populate notification suppression sets
+  // Sync with userProfile when auth loads a user and populate notification suppression sets
   useEffect(() => {
-    if (userProfile?.gamification) {
+    if (!userProfile) {
+      if (!user) {
+        hydratedUidRef.current = null;
+        isInitializedRef.current = false;
+        notifiedBadgesRef.current.clear();
+        notifiedStreakMilestonesRef.current.clear();
+        setGamification(DEFAULT_GAMIFICATION);
+        gamificationRef.current = DEFAULT_GAMIFICATION;
+      }
+      return;
+    }
+
+    const isNewUserHydration = hydratedUidRef.current !== userProfile.id;
+
+    if (userProfile.gamification) {
       const profileBadges = userProfile.gamification.unlockedBadges || {};
       const storedNotified = userProfile.gamification.notifiedBadgeIds || [];
       const storedMilestones = userProfile.gamification.awardedStreakMilestones || [];
@@ -120,89 +141,130 @@ export const GamificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       mergedNotifiedBadges.forEach(id => notifiedBadgesRef.current.add(id));
       mergedNotifiedMilestones.forEach(ms => notifiedStreakMilestonesRef.current.add(ms));
 
-      const merged: GamificationProfile = {
-        ...DEFAULT_GAMIFICATION,
-        ...userProfile.gamification,
-        unlockedBadges: profileBadges,
-        notifiedBadgeIds: mergedNotifiedBadges,
-        awardedStreakMilestones: storedMilestones,
-        notifiedStreakMilestones: mergedNotifiedMilestones,
-      };
+      const bestLongest = Math.max(
+        userProfile.gamification.longestStreak || 0,
+        userProfile.streakCount ?? 0,
+        ...storedMilestones,
+        isNewUserHydration ? 0 : (gamificationRef.current.longestStreak || 0),
+        0
+      );
 
-      setGamification(merged);
-      gamificationRef.current = merged;
-      isInitializedRef.current = true;
-    } else if (userProfile && !userProfile.gamification) {
-      setGamification(DEFAULT_GAMIFICATION);
-      gamificationRef.current = DEFAULT_GAMIFICATION;
+      if (isNewUserHydration) {
+        const merged: GamificationProfile = {
+          ...DEFAULT_GAMIFICATION,
+          ...userProfile.gamification,
+          unlockedBadges: profileBadges,
+          notifiedBadgeIds: mergedNotifiedBadges,
+          awardedStreakMilestones: storedMilestones,
+          notifiedStreakMilestones: mergedNotifiedMilestones,
+          longestStreak: bestLongest,
+        };
+
+        setGamification(merged);
+        gamificationRef.current = merged;
+        hydratedUidRef.current = userProfile.id;
+        isInitializedRef.current = true;
+      } else if (bestLongest > (gamificationRef.current.longestStreak || 0)) {
+        const updated = { ...gamificationRef.current, longestStreak: bestLongest };
+        setGamification(updated);
+        gamificationRef.current = updated;
+      }
+    } else if (isNewUserHydration) {
+      const initialLongest = Math.max(0, userProfile.streakCount ?? 0);
+      const initial = { ...DEFAULT_GAMIFICATION, longestStreak: initialLongest };
+      setGamification(initial);
+      gamificationRef.current = initial;
+      hydratedUidRef.current = userProfile.id;
       isInitializedRef.current = true;
     }
 
-    if (userProfile?.streakCount !== undefined) {
+    if (userProfile.streakCount !== undefined) {
       setCachedStats(prev => ({ ...prev, streakCount: userProfile.streakCount }));
     }
-  }, [userProfile]);
+  }, [user, userProfile]);
 
   const levelInfo = useMemo(() => {
     return calculateLevelInfo(gamification.totalXp);
   }, [gamification.totalXp]);
 
-  // Persist gamification state to Firestore and update local references
-  const saveGamification = useCallback(async (updated: GamificationProfile) => {
-    setGamification(updated);
-    gamificationRef.current = updated;
-    if (!user) return;
+  // Queue granular dotted-path updates to Firestore so concurrent writes never clobber sibling fields
+  const enqueueFirestorePatch = useCallback((patch: Record<string, any>) => {
+    if (!user || Object.keys(patch).length === 0) return;
 
-    try {
-      const userRef = doc(db, 'users', user.uid);
-      await updateDoc(userRef, {
-        gamification: updated,
-        updatedAt: new Date().toISOString(),
-      });
-    } catch (err) {
-      console.error('Failed to save gamification profile to Firestore:', err);
-    }
-  }, [user]);
-
-  // Helper to add XP and check level ups
-  const addXp = useCallback(async (amount: number, reason: string): Promise<number> => {
-    if (amount <= 0) return 0;
-
-    const currentGamification = gamificationRef.current;
-    const oldXp = currentGamification.totalXp || 0;
-    const newXp = oldXp + amount;
-    const oldLevel = calculateLevelInfo(oldXp).level;
-    const newLevelInfo = calculateLevelInfo(newXp);
-
-    const updatedProfile: GamificationProfile = {
-      ...currentGamification,
-      totalXp: newXp,
-      level: newLevelInfo.level,
+    const uid = user.uid;
+    const userRef = doc(db, 'users', uid);
+    const payload = {
+      ...patch,
+      updatedAt: new Date().toISOString(),
     };
 
-    // Check for Level Up
-    if (newLevelInfo.level > oldLevel) {
+    firestoreWriteQueueRef.current = firestoreWriteQueueRef.current
+      .then(() => updateDoc(userRef, payload))
+      .catch((err) => {
+        console.error('Failed to save gamification patch to Firestore:', err);
+      });
+  }, [user]);
+
+  // Serialize synchronous state computation + Firestore patch emission across all callers
+  const runSerializedGamificationTask = useCallback(<T,>(task: () => T): Promise<T> => {
+    const run = mutationQueueRef.current.then(() => task());
+    mutationQueueRef.current = run.catch(() => {});
+    return run;
+  }, []);
+
+  // Shared level-up notification helper for ALL XP award pathways
+  const notifyLevelUp = useCallback((oldLevel: number, newLevelInfo: LevelInfo, options?: { silent?: boolean }) => {
+    if (newLevelInfo.level <= oldLevel) return;
+
+    if (!options?.silent) {
       playCue('session_complete');
       showSuccess(
         `Congratulations! You unlocked the rank "${newLevelInfo.title}"! 🌟`,
         `Level Up! Reached Level ${newLevelInfo.level}`
       );
-
-      setRecentAwards(prev => [
-        {
-          id: `lvl_${Date.now()}`,
-          type: 'level_up',
-          title: `Level ${newLevelInfo.level}: ${newLevelInfo.title}`,
-          level: newLevelInfo.level,
-          timestamp: new Date().toISOString(),
-        },
-        ...prev.slice(0, 9)
-      ]);
     }
 
-    await saveGamification(updatedProfile);
-    return amount;
-  }, [playCue, showSuccess, saveGamification]);
+    setRecentAwards(prev => [
+      {
+        id: `lvl_${newLevelInfo.level}_${Date.now()}`,
+        type: 'level_up',
+        title: `Level ${newLevelInfo.level}: ${newLevelInfo.title}`,
+        level: newLevelInfo.level,
+        timestamp: new Date().toISOString(),
+      },
+      ...prev.slice(0, 9),
+    ]);
+  }, [playCue, showSuccess]);
+
+  // Helper to add XP and check level ups
+  const addXp = useCallback(async (amount: number, _reason: string): Promise<number> => {
+    if (amount <= 0) return 0;
+
+    return runSerializedGamificationTask(() => {
+      const currentGamification = gamificationRef.current;
+      const oldXp = currentGamification.totalXp || 0;
+      const newXp = oldXp + amount;
+      const oldLevel = calculateLevelInfo(oldXp).level;
+      const newLevelInfo = calculateLevelInfo(newXp);
+
+      const updatedProfile: GamificationProfile = {
+        ...currentGamification,
+        totalXp: newXp,
+        level: newLevelInfo.level,
+      };
+
+      setGamification(updatedProfile);
+      gamificationRef.current = updatedProfile;
+
+      enqueueFirestorePatch({
+        'gamification.totalXp': increment(amount),
+        'gamification.level': newLevelInfo.level,
+      });
+
+      notifyLevelUp(oldLevel, newLevelInfo);
+      return amount;
+    });
+  }, [runSerializedGamificationTask, enqueueFirestorePatch, notifyLevelUp]);
 
   // Award Focus Session XP: Exactly 1 XP for every 1 minute of completed focus time
   // Deduplicated via session ID to prevent duplicate awards
@@ -211,147 +273,186 @@ export const GamificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       return 0;
     }
 
-    const currentGamification = gamificationRef.current;
-    const awardedSessions = currentGamification.awardedSessionIds || [];
-    if (awardedSessions.includes(sessionId)) {
-      // Already rewarded, ignore duplicate call
-      return 0;
-    }
-
     const xpEarned = calculateFocusSessionXp(durationMinutes);
     if (xpEarned <= 0) return 0;
 
-    const oldXp = currentGamification.totalXp || 0;
-    const newXp = oldXp + xpEarned;
-    const oldLevel = calculateLevelInfo(oldXp).level;
-    const newLevelInfo = calculateLevelInfo(newXp);
+    return runSerializedGamificationTask(() => {
+      const currentGamification = gamificationRef.current;
+      const awardedSessions = currentGamification.awardedSessionIds || [];
+      if (awardedSessions.includes(sessionId)) {
+        return 0;
+      }
 
-    const updatedProfile: GamificationProfile = {
-      ...currentGamification,
-      awardedSessionIds: [...awardedSessions, sessionId],
-      totalXp: newXp,
-      level: newLevelInfo.level,
-    };
+      const oldXp = currentGamification.totalXp || 0;
+      const newXp = oldXp + xpEarned;
+      const oldLevel = calculateLevelInfo(oldXp).level;
+      const newLevelInfo = calculateLevelInfo(newXp);
 
-    await saveGamification(updatedProfile);
+      const updatedProfile: GamificationProfile = {
+        ...currentGamification,
+        awardedSessionIds: [...awardedSessions, sessionId],
+        totalXp: newXp,
+        level: newLevelInfo.level,
+      };
 
-    // If level up occurred
-    if (newLevelInfo.level > oldLevel) {
-      playCue('session_complete');
-      showSuccess(
-        `Congratulations! You advanced to Level ${newLevelInfo.level} (${newLevelInfo.title})! 🌟`,
-        `Level Up! +${xpEarned} XP Earned`
-      );
-    } else {
-      showInfo(
-        `Logged ${durationMinutes} minutes of focused study.`,
-        `+${xpEarned} XP Earned! (1 XP / min)`
-      );
-    }
+      setGamification(updatedProfile);
+      gamificationRef.current = updatedProfile;
 
-    return xpEarned;
-  }, [playCue, saveGamification, showInfo, showSuccess]);
+      enqueueFirestorePatch({
+        'gamification.awardedSessionIds': arrayUnion(sessionId),
+        'gamification.totalXp': increment(xpEarned),
+        'gamification.level': newLevelInfo.level,
+      });
+
+      if (newLevelInfo.level > oldLevel) {
+        notifyLevelUp(oldLevel, newLevelInfo);
+        showInfo(
+          `Logged ${durationMinutes} minutes of focused study.`,
+          `+${xpEarned} XP Earned!`
+        );
+      } else {
+        showInfo(
+          `Logged ${durationMinutes} minutes of focused study.`,
+          `+${xpEarned} XP Earned! (1 XP / min)`
+        );
+      }
+
+      return xpEarned;
+    });
+  }, [runSerializedGamificationTask, enqueueFirestorePatch, showInfo, notifyLevelUp]);
 
   // Award Task Completion XP (with deduplication)
   const awardTaskCompletionXp = useCallback(async (taskId: string, priority: string = 'medium'): Promise<number> => {
     if (!taskId) return 0;
-    const currentGamification = gamificationRef.current;
-    const awarded = currentGamification.awardedTaskIds || [];
-    if (awarded.includes(taskId)) {
-      // Already rewarded
-      return 0;
-    }
 
-    const xpEarned = calculateTaskXp(priority);
-    const oldXp = currentGamification.totalXp || 0;
-    const newXp = oldXp + xpEarned;
-    const newLevelInfo = calculateLevelInfo(newXp);
+    return runSerializedGamificationTask(() => {
+      const currentGamification = gamificationRef.current;
+      const awarded = currentGamification.awardedTaskIds || [];
+      if (awarded.includes(taskId)) {
+        return 0;
+      }
 
-    const updatedProfile: GamificationProfile = {
-      ...currentGamification,
-      awardedTaskIds: [...awarded, taskId],
-      totalXp: newXp,
-      level: newLevelInfo.level,
-    };
+      const xpEarned = calculateTaskXp(priority);
+      const oldXp = currentGamification.totalXp || 0;
+      const newXp = oldXp + xpEarned;
+      const oldLevel = calculateLevelInfo(oldXp).level;
+      const newLevelInfo = calculateLevelInfo(newXp);
 
-    await saveGamification(updatedProfile);
-    showInfo(`Task completed!`, `+${xpEarned} XP Earned!`);
+      const updatedProfile: GamificationProfile = {
+        ...currentGamification,
+        awardedTaskIds: [...awarded, taskId],
+        totalXp: newXp,
+        level: newLevelInfo.level,
+      };
 
-    return xpEarned;
-  }, [saveGamification, showInfo]);
+      setGamification(updatedProfile);
+      gamificationRef.current = updatedProfile;
+
+      enqueueFirestorePatch({
+        'gamification.awardedTaskIds': arrayUnion(taskId),
+        'gamification.totalXp': increment(xpEarned),
+        'gamification.level': newLevelInfo.level,
+      });
+
+      showInfo(`Task completed!`, `+${xpEarned} XP Earned!`);
+      notifyLevelUp(oldLevel, newLevelInfo);
+
+      return xpEarned;
+    });
+  }, [runSerializedGamificationTask, enqueueFirestorePatch, showInfo, notifyLevelUp]);
 
   // Award Goal Completion XP (with deduplication)
   const awardGoalCompletionXp = useCallback(async (goalId: string): Promise<number> => {
     if (!goalId) return 0;
-    const currentGamification = gamificationRef.current;
-    const awarded = currentGamification.awardedGoalIds || [];
-    if (awarded.includes(goalId)) {
-      return 0;
-    }
 
-    const xpEarned = XP_REWARDS.GOAL_COMPLETED;
-    const oldXp = currentGamification.totalXp || 0;
-    const newXp = oldXp + xpEarned;
-    const newLevelInfo = calculateLevelInfo(newXp);
+    return runSerializedGamificationTask(() => {
+      const currentGamification = gamificationRef.current;
+      const awarded = currentGamification.awardedGoalIds || [];
+      if (awarded.includes(goalId)) {
+        return 0;
+      }
 
-    const updatedProfile: GamificationProfile = {
-      ...currentGamification,
-      awardedGoalIds: [...awarded, goalId],
-      totalXp: newXp,
-      level: newLevelInfo.level,
-    };
+      const xpEarned = XP_REWARDS.GOAL_COMPLETED;
+      const oldXp = currentGamification.totalXp || 0;
+      const newXp = oldXp + xpEarned;
+      const oldLevel = calculateLevelInfo(oldXp).level;
+      const newLevelInfo = calculateLevelInfo(newXp);
 
-    await saveGamification(updatedProfile);
+      const updatedProfile: GamificationProfile = {
+        ...currentGamification,
+        awardedGoalIds: [...awarded, goalId],
+        totalXp: newXp,
+        level: newLevelInfo.level,
+      };
 
-    playCue('session_complete');
-    showSuccess(
-      `You reached your study target goal! 🎉`,
-      `+${xpEarned} XP • Goal Milestone Complete!`
-    );
+      setGamification(updatedProfile);
+      gamificationRef.current = updatedProfile;
 
-    return xpEarned;
-  }, [saveGamification, playCue, showSuccess]);
+      enqueueFirestorePatch({
+        'gamification.awardedGoalIds': arrayUnion(goalId),
+        'gamification.totalXp': increment(xpEarned),
+        'gamification.level': newLevelInfo.level,
+      });
 
-  // Daily target bonus (awarded once per day)
+      playCue('session_complete');
+      showSuccess(
+        `You reached your study target goal! 🎉`,
+        `+${xpEarned} XP • Goal Milestone Complete!`
+      );
+      notifyLevelUp(oldLevel, newLevelInfo);
+
+      return xpEarned;
+    });
+  }, [runSerializedGamificationTask, enqueueFirestorePatch, playCue, showSuccess, notifyLevelUp]);
+
+  // Daily target bonus (awarded once per local calendar day)
   const checkAndAwardDailyBonus = useCallback(async (todayStudyMinutes: number, dailyGoalMinutes: number) => {
     if (dailyGoalMinutes <= 0 || todayStudyMinutes < dailyGoalMinutes || !isInitializedRef.current) return;
 
-    const todayStr = new Date().toISOString().split('T')[0];
-    const currentGamification = gamificationRef.current;
-    const claimedDates = currentGamification.dailyBonusAwardedDates || [];
-    if (claimedDates.includes(todayStr)) return; // Already claimed today
+    await runSerializedGamificationTask(() => {
+      if (!isInitializedRef.current) return;
 
-    const bonusXp = XP_REWARDS.DAILY_TARGET_REACHED;
-    const oldXp = currentGamification.totalXp || 0;
-    const newXp = oldXp + bonusXp;
-    const newLevelInfo = calculateLevelInfo(newXp);
+      const todayStr = formatLocalDateKey();
+      const currentGamification = gamificationRef.current;
+      const claimedDates = currentGamification.dailyBonusAwardedDates || [];
+      if (claimedDates.includes(todayStr)) return;
 
-    const updatedProfile: GamificationProfile = {
-      ...currentGamification,
-      dailyBonusAwardedDates: [...claimedDates, todayStr],
-      totalXp: newXp,
-      level: newLevelInfo.level,
-    };
+      const bonusXp = XP_REWARDS.DAILY_TARGET_REACHED;
+      const oldXp = currentGamification.totalXp || 0;
+      const newXp = oldXp + bonusXp;
+      const oldLevel = calculateLevelInfo(oldXp).level;
+      const newLevelInfo = calculateLevelInfo(newXp);
 
-    await saveGamification(updatedProfile);
+      const updatedProfile: GamificationProfile = {
+        ...currentGamification,
+        dailyBonusAwardedDates: [...claimedDates, todayStr],
+        totalXp: newXp,
+        level: newLevelInfo.level,
+      };
 
-    playCue('session_complete');
-    showSuccess(
-      `You hit your ${dailyGoalMinutes} minute study target today! Outstanding work! 🔥`,
-      `Daily Goal Achieved! +${bonusXp} XP Bonus`
-    );
-  }, [saveGamification, playCue, showSuccess]);
+      setGamification(updatedProfile);
+      gamificationRef.current = updatedProfile;
 
-  // STREAK BONUSES
-  // 1 day: +10 XP
-  // 3 days: +25 XP
-  // 7 days: +50 XP
-  // 14 days: +100 XP
-  // 30 days: +250 XP
-  // 60 days: +500 XP
-  // 100 days: +1,000 XP
-  // Award each milestone bonus only once and notify only on genuine new unlock.
-  const checkStreakBonuses = useCallback(async (streakCount: number, options?: { silent?: boolean }) => {
+      enqueueFirestorePatch({
+        'gamification.dailyBonusAwardedDates': arrayUnion(todayStr),
+        'gamification.totalXp': increment(bonusXp),
+        'gamification.level': newLevelInfo.level,
+      });
+
+      playCue('session_complete');
+      showSuccess(
+        `You hit your ${dailyGoalMinutes} minute study target today! Outstanding work! 🔥`,
+        `Daily Goal Achieved! +${bonusXp} XP Bonus`
+      );
+      notifyLevelUp(oldLevel, newLevelInfo);
+    });
+  }, [runSerializedGamificationTask, enqueueFirestorePatch, playCue, showSuccess, notifyLevelUp]);
+
+  // Synchronous helper that evaluates streak bonuses against currentGamification without awaiting
+  const applyStreakBonusEvaluation = useCallback((
+    streakCount: number,
+    options?: { silent?: boolean }
+  ) => {
     if (streakCount <= 0 || !isInitializedRef.current) return;
 
     const currentGamification = gamificationRef.current;
@@ -376,17 +477,29 @@ export const GamificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     if (newlyClaimed.length > 0) {
       const oldXp = currentGamification.totalXp || 0;
       const newXp = oldXp + bonusXpTotal;
+      const oldLevel = calculateLevelInfo(oldXp).level;
       const newLevelInfo = calculateLevelInfo(newXp);
+      const nextLongest = Math.max(currentGamification.longestStreak || 0, streakCount);
 
       const updatedProfile: GamificationProfile = {
         ...currentGamification,
         awardedStreakMilestones: [...awardedMilestones, ...newlyClaimed],
         notifiedStreakMilestones: Array.from(notifiedStreakMilestonesRef.current),
+        longestStreak: nextLongest,
         totalXp: newXp,
         level: newLevelInfo.level,
       };
 
-      await saveGamification(updatedProfile);
+      setGamification(updatedProfile);
+      gamificationRef.current = updatedProfile;
+
+      enqueueFirestorePatch({
+        'gamification.awardedStreakMilestones': arrayUnion(...newlyClaimed),
+        'gamification.notifiedStreakMilestones': arrayUnion(...newlyClaimed),
+        'gamification.longestStreak': nextLongest,
+        'gamification.totalXp': increment(bonusXpTotal),
+        'gamification.level': newLevelInfo.level,
+      });
 
       if (bonusMessages.length > 0) {
         playCue('session_complete');
@@ -408,11 +521,22 @@ export const GamificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
           ]);
         });
       }
-    }
-  }, [playCue, saveGamification, showSuccess]);
 
-  // Check all badges/milestones & streak bonuses
-  // Separates achievement progress/earned state from notification popup state
+      notifyLevelUp(oldLevel, newLevelInfo, options);
+    }
+  }, [enqueueFirestorePatch, playCue, showSuccess, notifyLevelUp]);
+
+  // STREAK BONUSES
+  // 1 day: +10 XP, 3 days: +25 XP, 7 days: +50 XP, 14 days: +100 XP,
+  // 30 days: +250 XP, 60 days: +500 XP, 100 days: +1,000 XP
+  const checkStreakBonuses = useCallback(async (streakCount: number, options?: { silent?: boolean }) => {
+    if (streakCount <= 0 || !isInitializedRef.current) return;
+    await runSerializedGamificationTask(() => {
+      applyStreakBonusEvaluation(streakCount, options);
+    });
+  }, [runSerializedGamificationTask, applyStreakBonusEvaluation]);
+
+  // Check all badges/milestones & streak bonuses atomically inside serialized queue
   const checkAllMilestones = useCallback(async (
     stats: {
       totalSessions: number;
@@ -426,195 +550,247 @@ export const GamificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   ) => {
     setCachedStats(stats);
 
-    // Guard: Do not run milestone checks until userProfile has finished hydrating
     if (!isInitializedRef.current) {
       return;
     }
 
-    const currentGamification = gamificationRef.current;
-    const currentUnlocked = { ...(currentGamification.unlockedBadges || {}) };
-    let extraXp = 0;
-    const newlyUnlockedBadges: BadgeDefinition[] = [];
-    const badgesToNotify: BadgeDefinition[] = [];
+    await runSerializedGamificationTask(() => {
+      if (!isInitializedRef.current) return;
 
-    // Also check streak bonuses
-    await checkStreakBonuses(stats.streakCount, options);
+      const effectiveBestStreak = Math.max(
+        stats.streakCount,
+        gamificationRef.current.longestStreak || 0,
+        ...(gamificationRef.current.awardedStreakMilestones || []),
+        0
+      );
 
-    ALL_BADGES.forEach((badge) => {
-      if (currentUnlocked[badge.id]) {
-        // Already unlocked and recorded
-        notifiedBadgesRef.current.add(badge.id);
-        return;
-      }
+      // Evaluate streak bonuses synchronously within the same serialized critical section
+      applyStreakBonusEvaluation(effectiveBestStreak, options);
 
-      let isConditionMet = false;
+      const currentGamification = gamificationRef.current;
+      const currentUnlocked = { ...(currentGamification.unlockedBadges || {}) };
+      const currentLevel = calculateLevelInfo(currentGamification.totalXp || 0).level;
+      let extraXp = 0;
+      const newlyUnlockedBadges: BadgeDefinition[] = [];
+      const badgesToNotify: BadgeDefinition[] = [];
+      const badgeUnlockTimestamps: Record<string, string> = {};
 
-      switch (badge.id) {
-        // Sessions
-        case 'first_session':
-          isConditionMet = stats.totalSessions >= 1;
-          break;
-        case 'sessions_5':
-          isConditionMet = stats.totalSessions >= 5;
-          break;
-        case 'sessions_25':
-          isConditionMet = stats.totalSessions >= 25;
-          break;
-        case 'sessions_50':
-          isConditionMet = stats.totalSessions >= 50;
-          break;
-        case 'sessions_100':
-          isConditionMet = stats.totalSessions >= 100;
-          break;
-
-        // Minutes
-        case 'minutes_60':
-          isConditionMet = stats.totalMinutes >= 60;
-          break;
-        case 'minutes_100':
-          isConditionMet = stats.totalMinutes >= 100;
-          break;
-        case 'minutes_300':
-          isConditionMet = stats.totalMinutes >= 300;
-          break;
-        case 'minutes_500':
-          isConditionMet = stats.totalMinutes >= 500;
-          break;
-        case 'minutes_1000':
-          isConditionMet = stats.totalMinutes >= 1000;
-          break;
-        case 'minutes_2500':
-          isConditionMet = stats.totalMinutes >= 2500;
-          break;
-        case 'minutes_5000':
-          isConditionMet = stats.totalMinutes >= 5000;
-          break;
-
-        // Tasks
-        case 'first_task':
-          isConditionMet = stats.totalTasks >= 1;
-          break;
-        case 'tasks_10':
-          isConditionMet = stats.totalTasks >= 10;
-          break;
-        case 'tasks_25':
-          isConditionMet = stats.totalTasks >= 25;
-          break;
-        case 'tasks_50':
-          isConditionMet = stats.totalTasks >= 50;
-          break;
-        case 'tasks_100':
-          isConditionMet = stats.totalTasks >= 100;
-          break;
-
-        // Streak
-        case 'streak_1':
-          isConditionMet = stats.streakCount >= 1;
-          break;
-        case 'streak_3':
-          isConditionMet = stats.streakCount >= 3;
-          break;
-        case 'streak_7':
-          isConditionMet = stats.streakCount >= 7;
-          break;
-        case 'streak_14':
-          isConditionMet = stats.streakCount >= 14;
-          break;
-        case 'streak_30':
-          isConditionMet = stats.streakCount >= 30;
-          break;
-        case 'streak_60':
-          isConditionMet = stats.streakCount >= 60;
-          break;
-        case 'streak_100':
-          isConditionMet = stats.streakCount >= 100;
-          break;
-
-        // Levels
-        case 'level_2':
-          isConditionMet = levelInfo.level >= 2;
-          break;
-        case 'level_5':
-          isConditionMet = levelInfo.level >= 5;
-          break;
-        case 'level_10':
-          isConditionMet = levelInfo.level >= 10;
-          break;
-        case 'level_20':
-          isConditionMet = levelInfo.level >= 20;
-          break;
-
-        // Goals & Subjects
-        case 'first_goal':
-          isConditionMet = stats.completedGoalsCount >= 1;
-          break;
-        case 'goals_5':
-          isConditionMet = stats.completedGoalsCount >= 5;
-          break;
-        case 'subjects_3':
-          isConditionMet = stats.subjectCount >= 3;
-          break;
-        case 'subjects_6':
-          isConditionMet = stats.subjectCount >= 6;
-          break;
-      }
-
-      if (isConditionMet) {
-        currentUnlocked[badge.id] = new Date().toISOString();
-        extraXp += badge.xpReward;
-        newlyUnlockedBadges.push(badge);
-
-        const alreadyNotified = notifiedBadgesRef.current.has(badge.id);
-        if (!alreadyNotified && !options?.silent) {
-          badgesToNotify.push(badge);
+      ALL_BADGES.forEach((badge) => {
+        if (currentUnlocked[badge.id]) {
+          notifiedBadgesRef.current.add(badge.id);
+          return;
         }
-        notifiedBadgesRef.current.add(badge.id);
-      }
-    });
 
-    if (newlyUnlockedBadges.length > 0) {
-      const newTotalXp = (currentGamification.totalXp || 0) + extraXp;
-      const updatedProfile: GamificationProfile = {
-        ...currentGamification,
-        unlockedBadges: currentUnlocked,
-        notifiedBadgeIds: Array.from(notifiedBadgesRef.current),
-        totalXp: newTotalXp,
-        level: calculateLevelInfo(newTotalXp).level,
-        lastMilestoneCheck: new Date().toISOString(),
-      };
+        let isConditionMet = false;
 
-      await saveGamification(updatedProfile);
+        switch (badge.id) {
+          // Sessions
+          case 'first_session':
+            isConditionMet = stats.totalSessions >= 1;
+            break;
+          case 'sessions_5':
+            isConditionMet = stats.totalSessions >= 5;
+            break;
+          case 'sessions_25':
+            isConditionMet = stats.totalSessions >= 25;
+            break;
+          case 'sessions_50':
+            isConditionMet = stats.totalSessions >= 50;
+            break;
+          case 'sessions_100':
+            isConditionMet = stats.totalSessions >= 100;
+            break;
 
-      // Trigger audio & toast notifications ONLY for genuinely new, unnotified badges
-      if (badgesToNotify.length > 0) {
-        // Play notification cue ONCE for the entire batch
-        playCue('session_complete');
+          // Minutes
+          case 'minutes_60':
+            isConditionMet = stats.totalMinutes >= 60;
+            break;
+          case 'minutes_100':
+            isConditionMet = stats.totalMinutes >= 100;
+            break;
+          case 'minutes_300':
+            isConditionMet = stats.totalMinutes >= 300;
+            break;
+          case 'minutes_500':
+            isConditionMet = stats.totalMinutes >= 500;
+            break;
+          case 'minutes_1000':
+            isConditionMet = stats.totalMinutes >= 1000;
+            break;
+          case 'minutes_2500':
+            isConditionMet = stats.totalMinutes >= 2500;
+            break;
+          case 'minutes_5000':
+            isConditionMet = stats.totalMinutes >= 5000;
+            break;
 
-        badgesToNotify.forEach((b) => {
-          showSuccess(
-            `${b.description} (+${b.xpReward} XP)`,
-            `🏆 Badge Unlocked: ${b.title}`
-          );
+          // Tasks
+          case 'first_task':
+            isConditionMet = stats.totalTasks >= 1;
+            break;
+          case 'tasks_10':
+            isConditionMet = stats.totalTasks >= 10;
+            break;
+          case 'tasks_25':
+            isConditionMet = stats.totalTasks >= 25;
+            break;
+          case 'tasks_50':
+            isConditionMet = stats.totalTasks >= 50;
+            break;
+          case 'tasks_100':
+            isConditionMet = stats.totalTasks >= 100;
+            break;
 
-          setRecentAwards(prev => [
-            {
-              id: `badge_${b.id}_${Date.now()}`,
-              type: 'badge',
-              title: b.title,
-              badge: b,
-              amount: b.xpReward,
-              timestamp: new Date().toISOString(),
-            },
-            ...prev.slice(0, 9),
-          ]);
+          // Streak (evaluated against highest continuous streak reached)
+          case 'streak_1':
+            isConditionMet = effectiveBestStreak >= 1;
+            break;
+          case 'streak_3':
+            isConditionMet = effectiveBestStreak >= 3;
+            break;
+          case 'streak_7':
+            isConditionMet = effectiveBestStreak >= 7;
+            break;
+          case 'streak_14':
+            isConditionMet = effectiveBestStreak >= 14;
+            break;
+          case 'streak_30':
+            isConditionMet = effectiveBestStreak >= 30;
+            break;
+          case 'streak_60':
+            isConditionMet = effectiveBestStreak >= 60;
+            break;
+          case 'streak_100':
+            isConditionMet = effectiveBestStreak >= 100;
+            break;
+
+          // Levels
+          case 'level_2':
+            isConditionMet = currentLevel >= 2;
+            break;
+          case 'level_5':
+            isConditionMet = currentLevel >= 5;
+            break;
+          case 'level_10':
+            isConditionMet = currentLevel >= 10;
+            break;
+          case 'level_20':
+            isConditionMet = currentLevel >= 20;
+            break;
+
+          // Goals & Subjects
+          case 'first_goal':
+            isConditionMet = stats.completedGoalsCount >= 1;
+            break;
+          case 'goals_5':
+            isConditionMet = stats.completedGoalsCount >= 5;
+            break;
+          case 'subjects_3':
+            isConditionMet = stats.subjectCount >= 3;
+            break;
+          case 'subjects_6':
+            isConditionMet = stats.subjectCount >= 6;
+            break;
+        }
+
+        if (isConditionMet) {
+          const unlockedIso = new Date().toISOString();
+          currentUnlocked[badge.id] = unlockedIso;
+          badgeUnlockTimestamps[badge.id] = unlockedIso;
+          extraXp += badge.xpReward;
+          newlyUnlockedBadges.push(badge);
+
+          const alreadyNotified = notifiedBadgesRef.current.has(badge.id);
+          if (!alreadyNotified && !options?.silent) {
+            badgesToNotify.push(badge);
+          }
+          notifiedBadgesRef.current.add(badge.id);
+        }
+      });
+
+      const shouldPersistLongest = effectiveBestStreak > (currentGamification.longestStreak || 0);
+
+      if (newlyUnlockedBadges.length > 0) {
+        const oldXp = currentGamification.totalXp || 0;
+        const oldLevel = calculateLevelInfo(oldXp).level;
+        const newTotalXp = oldXp + extraXp;
+        const newLevelInfo = calculateLevelInfo(newTotalXp);
+        const nextLongest = Math.max(currentGamification.longestStreak || 0, effectiveBestStreak);
+        const checkedAt = new Date().toISOString();
+
+        const updatedProfile: GamificationProfile = {
+          ...currentGamification,
+          unlockedBadges: currentUnlocked,
+          notifiedBadgeIds: Array.from(notifiedBadgesRef.current),
+          longestStreak: nextLongest,
+          totalXp: newTotalXp,
+          level: newLevelInfo.level,
+          lastMilestoneCheck: checkedAt,
+        };
+
+        setGamification(updatedProfile);
+        gamificationRef.current = updatedProfile;
+
+        const patch: Record<string, any> = {
+          'gamification.notifiedBadgeIds': arrayUnion(...newlyUnlockedBadges.map(b => b.id)),
+          'gamification.level': newLevelInfo.level,
+          'gamification.lastMilestoneCheck': checkedAt,
+        };
+        if (extraXp > 0) {
+          patch['gamification.totalXp'] = increment(extraXp);
+        }
+        if (shouldPersistLongest) {
+          patch['gamification.longestStreak'] = nextLongest;
+        }
+        Object.entries(badgeUnlockTimestamps).forEach(([badgeId, unlockedIso]) => {
+          patch[`gamification.unlockedBadges.${badgeId}`] = unlockedIso;
+        });
+
+        enqueueFirestorePatch(patch);
+
+        if (badgesToNotify.length > 0) {
+          playCue('session_complete');
+
+          badgesToNotify.forEach((b) => {
+            showSuccess(
+              `${b.description} (+${b.xpReward} XP)`,
+              `🏆 Badge Unlocked: ${b.title}`
+            );
+
+            setRecentAwards(prev => [
+              {
+                id: `badge_${b.id}_${Date.now()}`,
+                type: 'badge',
+                title: b.title,
+                badge: b,
+                amount: b.xpReward,
+                timestamp: new Date().toISOString(),
+              },
+              ...prev.slice(0, 9),
+            ]);
+          });
+        }
+
+        notifyLevelUp(oldLevel, newLevelInfo, options);
+      } else if (shouldPersistLongest) {
+        const updatedProfile: GamificationProfile = {
+          ...currentGamification,
+          longestStreak: effectiveBestStreak,
+        };
+        setGamification(updatedProfile);
+        gamificationRef.current = updatedProfile;
+
+        enqueueFirestorePatch({
+          'gamification.longestStreak': effectiveBestStreak,
         });
       }
-    }
-  }, [checkStreakBonuses, levelInfo.level, playCue, saveGamification, showSuccess]);
+    });
+  }, [runSerializedGamificationTask, applyStreakBonusEvaluation, enqueueFirestorePatch, playCue, showSuccess, notifyLevelUp]);
 
   // Compute full display badges with accurate real-time progress
   const allBadges: DisplayBadge[] = useMemo(() => {
     const unlockedMap = gamification.unlockedBadges || {};
+    const bestStreak = Math.max(cachedStats.streakCount, gamification.longestStreak || 0);
 
     return ALL_BADGES.map((b) => {
       const isUnlocked = Boolean(unlockedMap[b.id]);
@@ -658,7 +834,7 @@ export const GamificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
           case 'streak_30':
           case 'streak_60':
           case 'streak_100':
-            liveProgress = Math.min(b.targetValue, cachedStats.streakCount);
+            liveProgress = Math.min(b.targetValue, bestStreak);
             break;
 
           case 'level_2':
@@ -696,7 +872,7 @@ export const GamificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         progressPercent,
       };
     });
-  }, [gamification.unlockedBadges, cachedStats, levelInfo.level]);
+  }, [gamification.unlockedBadges, gamification.longestStreak, cachedStats, levelInfo.level]);
 
   const unlockedBadgesCount = useMemo(() => {
     return Object.keys(gamification.unlockedBadges || {}).length;

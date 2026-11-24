@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Play, 
   Pause, 
@@ -44,11 +44,24 @@ export const PomodoroTimerPage: React.FC<PomodoroTimerPageProps> = ({
     { id: '3', text: 'Memorize 20 vocabulary terms', done: false }
   ]);
 
+  const chimeCtxsRef = useRef<Set<AudioContext>>(new Set());
+
   const durations: Record<PomodoroMode, number> = {
     work: 25 * 60,
     shortBreak: 5 * 60,
     longBreak: 15 * 60
   };
+
+  useEffect(() => {
+    return () => {
+      chimeCtxsRef.current.forEach(ctx => {
+        if (ctx.state !== 'closed') {
+          ctx.close().catch(() => {});
+        }
+      });
+      chimeCtxsRef.current.clear();
+    };
+  }, []);
 
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
@@ -96,9 +109,12 @@ export const PomodoroTimerPage: React.FC<PomodoroTimerPageProps> = ({
   };
 
   const playChime = () => {
+    let ctx: AudioContext | null = null;
     try {
       const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-      const ctx = new AudioCtx();
+      if (!AudioCtx) return;
+      ctx = new AudioCtx();
+      chimeCtxsRef.current.add(ctx);
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.type = 'sine';
@@ -108,9 +124,23 @@ export const PomodoroTimerPage: React.FC<PomodoroTimerPageProps> = ({
       gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.9);
       osc.connect(gain);
       gain.connect(ctx.destination);
+      const createdCtx = ctx;
+      osc.onended = () => {
+        chimeCtxsRef.current.delete(createdCtx);
+        if (createdCtx.state !== 'closed') {
+          createdCtx.close().catch(() => {});
+        }
+      };
       osc.start();
       osc.stop(ctx.currentTime + 0.95);
-    } catch (e) {}
+    } catch (e) {
+      if (ctx) {
+        chimeCtxsRef.current.delete(ctx);
+        if (ctx.state !== 'closed') {
+          ctx.close().catch(() => {});
+        }
+      }
+    }
   };
 
   const formatTime = (secs: number) => {

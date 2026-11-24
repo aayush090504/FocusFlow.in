@@ -23,7 +23,8 @@ import { useStudy } from '../../context/StudyContext';
 import { useGamification } from '../../context/GamificationContext';
 import { useAriaAnnounce } from '../common/AriaLiveAnnouncer';
 import { MiniCalendar, formatLocalDateToKey, parseLocalKeyToDate } from '../common/MiniCalendar';
-import { Task, Priority, TaskStatus } from '../../types';
+import { extractLocalDateKey } from '../../utils/dateUtils';
+import { Task, Priority } from '../../types';
 
 export const TasksView: React.FC = () => {
   const { 
@@ -42,7 +43,7 @@ export const TasksView: React.FC = () => {
   const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSubjectFilter, setSelectedSubjectFilter] = useState<string>('all');
-  const [statusFilter, setStatusFilter] = useState<'all' | TaskStatus>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'completed'>('all');
   const [priorityFilter, setPriorityFilter] = useState<'all' | Priority>('all');
   const [selectedDateFilter, setSelectedDateFilter] = useState<string | null>(null);
 
@@ -52,7 +53,7 @@ export const TasksView: React.FC = () => {
     return tasks.filter(task => {
       // Date filter from calendar selection
       if (selectedDateFilter) {
-        const taskDate = task.dueDate?.split('T')[0];
+        const taskDate = extractLocalDateKey(task.dueDate);
         if (taskDate !== selectedDateFilter) return false;
       }
       // Search filter
@@ -66,9 +67,11 @@ export const TasksView: React.FC = () => {
       if (selectedSubjectFilter !== 'all') {
         if (task.subjectId !== selectedSubjectFilter) return false;
       }
-      // Status filter
-      if (statusFilter !== 'all') {
-        if (task.status !== statusFilter) return false;
+      // Status filter (treat pending, legacy 'todo', and 'in_progress' as Pending)
+      if (statusFilter === 'pending') {
+        if (task.status === 'completed') return false;
+      } else if (statusFilter === 'completed') {
+        if (task.status !== 'completed') return false;
       }
       // Priority filter
       if (priorityFilter !== 'all') {
@@ -397,7 +400,7 @@ export const TasksView: React.FC = () => {
                               {task.dueDate && (
                                 <span className="inline-flex items-center gap-1 font-mono" style={{ color: 'var(--color-text-secondary)' }}>
                                   <CalendarIcon className="w-3 h-3" />
-                                  {task.dueDate}
+                                  {extractLocalDateKey(task.dueDate) || task.dueDate}
                                 </span>
                               )}
 
@@ -582,12 +585,12 @@ export const TasksView: React.FC = () => {
                 </button>
                 <button
                   role="tab"
-                  aria-selected={statusFilter === 'todo'}
-                  onClick={() => setStatusFilter('todo')}
+                  aria-selected={statusFilter === 'pending'}
+                  onClick={() => setStatusFilter('pending')}
                   className="px-3.5 py-2 rounded-lg text-xs font-semibold transition-all shrink-0 touch-target"
                   style={{
-                    backgroundColor: statusFilter === 'todo' ? 'var(--color-accent-primary)' : 'var(--color-bg-subtle)',
-                    color: statusFilter === 'todo' ? 'var(--color-accent-fg)' : 'var(--color-text-secondary)',
+                    backgroundColor: statusFilter === 'pending' ? 'var(--color-accent-primary)' : 'var(--color-bg-subtle)',
+                    color: statusFilter === 'pending' ? 'var(--color-accent-fg)' : 'var(--color-text-secondary)',
                   }}
                 >
                   Pending ({activeCount})
@@ -736,15 +739,16 @@ export const TasksView: React.FC = () => {
                             <button
                               type="button"
                               onClick={() => {
-                                setSelectedDateFilter(task.dueDate || null);
-                                announce(`Filtered by due date: ${task.dueDate}`);
+                                const normalized = extractLocalDateKey(task.dueDate);
+                                setSelectedDateFilter(normalized || null);
+                                announce(`Filtered by due date: ${normalized || task.dueDate}`);
                               }}
                               className="inline-flex items-center gap-1 font-mono hover:underline cursor-pointer" 
                               style={{ color: 'var(--color-text-secondary)' }}
                               title="Filter tasks for this date"
                             >
                               <CalendarIcon className="w-3 h-3" />
-                              {task.dueDate}
+                              {extractLocalDateKey(task.dueDate) || task.dueDate}
                             </button>
                           )}
 

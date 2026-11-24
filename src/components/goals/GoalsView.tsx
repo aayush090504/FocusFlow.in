@@ -17,8 +17,8 @@ import {
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useStudy } from '../../context/StudyContext';
-import { useGamification } from '../../context/GamificationContext';
 import { Goal } from '../../types';
+import { parseLocalDateKey } from '../../utils/dateUtils';
 
 export const GoalsView: React.FC = () => {
   const { 
@@ -33,7 +33,6 @@ export const GoalsView: React.FC = () => {
     setIsGoalModalOpen, 
     setSelectedGoalForEdit 
   } = useStudy();
-  const { awardGoalCompletionXp } = useGamification();
 
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'completed'>('all');
   const [selectedSubjectFilter, setSelectedSubjectFilter] = useState<string>('all');
@@ -57,7 +56,6 @@ export const GoalsView: React.FC = () => {
         spread: 60,
         origin: { y: 0.7 }
       });
-      await awardGoalCompletionXp(goal.id);
     }
     await toggleGoalCompletion(goal.id);
   };
@@ -89,11 +87,12 @@ export const GoalsView: React.FC = () => {
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const target = new Date(targetDateStr);
+    const target = parseLocalDateKey(targetDateStr);
+    if (!target) return { text: 'No deadline', colorClass: 'text-slate-600 bg-slate-50 border-slate-200' };
     target.setHours(0, 0, 0, 0);
 
     const diffTime = target.getTime() - today.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
 
     if (diffDays < 0) {
       return { 

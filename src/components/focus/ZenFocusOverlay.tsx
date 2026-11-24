@@ -229,7 +229,7 @@ export const ZenFocusOverlay: React.FC = () => {
 
           <div className="hidden sm:flex items-center gap-1.5 text-xs text-slate-400 font-medium">
             <Flame className="w-3.5 h-3.5 text-amber-400" />
-            <span>Streak: {userProfile?.streakCount || 1}d</span>
+            <span>Streak: {userProfile?.streakCount ?? 0}d</span>
           </div>
         </div>
 
@@ -440,7 +440,7 @@ export const ZenFocusOverlay: React.FC = () => {
             </button>
           </div>
         ) : (
-          <p className="text-xs sm:text-sm text-slate-400 italic max-w-md mx-auto leading-relaxed px-4 animate-fade-in key={quoteIndex}">
+          <p key={quoteIndex} className="text-xs sm:text-sm text-slate-400 italic max-w-md mx-auto leading-relaxed px-4 animate-fade-in">
             "{ZEN_AFFIRMATIONS[quoteIndex]}"
           </p>
         )}

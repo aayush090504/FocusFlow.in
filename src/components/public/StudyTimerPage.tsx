@@ -46,7 +46,8 @@ export const StudyTimerPage: React.FC<StudyTimerPageProps> = ({
 
   // Audio Context for built-in soundscapes
   const audioCtxRef = useRef<AudioContext | null>(null);
-  const noiseNodeRef = useRef<AudioNode | null>(null);
+  const activeNodesRef = useRef<AudioNode[]>([]);
+  const chimeCtxsRef = useRef<Set<AudioContext>>(new Set());
 
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
@@ -76,9 +77,26 @@ export const StudyTimerPage: React.FC<StudyTimerPageProps> = ({
     };
   }, [isRunning, isMuted, soundscape]);
 
+  // Close AudioContexts on component unmount
+  useEffect(() => {
+    return () => {
+      stopSoundscape();
+      if (audioCtxRef.current && audioCtxRef.current.state !== 'closed') {
+        audioCtxRef.current.close().catch(() => {});
+        audioCtxRef.current = null;
+      }
+      chimeCtxsRef.current.forEach(ctx => {
+        if (ctx.state !== 'closed') {
+          ctx.close().catch(() => {});
+        }
+      });
+      chimeCtxsRef.current.clear();
+    };
+  }, []);
+
   const startSoundscape = (type: string) => {
     try {
-      if (!audioCtxRef.current) {
+      if (!audioCtxRef.current || audioCtxRef.current.state === 'closed') {
         const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
         audioCtxRef.current = new AudioCtx();
       }
@@ -108,7 +126,7 @@ export const StudyTimerPage: React.FC<StudyTimerPageProps> = ({
         filter.connect(gain);
         gain.connect(ctx.destination);
         noise.start();
-        noiseNodeRef.current = noise;
+        activeNodesRef.current.push(noise, filter, gain);
       } else if (type === 'rain') {
         const bufferSize = ctx.sampleRate * 2;
         const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
@@ -128,7 +146,7 @@ export const StudyTimerPage: React.FC<StudyTimerPageProps> = ({
         noise.connect(gain);
         gain.connect(ctx.destination);
         noise.start();
-        noiseNodeRef.current = noise;
+        activeNodesRef.current.push(noise, gain);
       } else if (type === 'binaural') {
         // 40Hz Gamma / 10Hz Alpha binaural beat
         const oscLeft = ctx.createOscillator();
@@ -144,7 +162,7 @@ export const StudyTimerPage: React.FC<StudyTimerPageProps> = ({
         gain.connect(ctx.destination);
         oscLeft.start();
         oscRight.start();
-        noiseNodeRef.current = oscLeft;
+        activeNodesRef.current.push(oscLeft, oscRight, gain);
       }
     } catch (e) {
       console.warn('AudioContext soundscape error:', e);
@@ -152,19 +170,26 @@ export const StudyTimerPage: React.FC<StudyTimerPageProps> = ({
   };
 
   const stopSoundscape = () => {
-    if (noiseNodeRef.current) {
-      try {
-        (noiseNodeRef.current as any).stop?.();
-        noiseNodeRef.current.disconnect();
-      } catch (e) {}
-      noiseNodeRef.current = null;
+    if (activeNodesRef.current.length > 0) {
+      for (const node of activeNodesRef.current) {
+        try {
+          (node as any).stop?.();
+        } catch {}
+        try {
+          node.disconnect();
+        } catch {}
+      }
+      activeNodesRef.current = [];
     }
   };
 
   const playCompletionChime = () => {
+    let ctx: AudioContext | null = null;
     try {
       const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-      const ctx = new AudioCtx();
+      if (!AudioCtx) return;
+      ctx = new AudioCtx();
+      chimeCtxsRef.current.add(ctx);
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.type = 'triangle';
@@ -175,9 +200,23 @@ export const StudyTimerPage: React.FC<StudyTimerPageProps> = ({
       gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.8);
       osc.connect(gain);
       gain.connect(ctx.destination);
+      const createdCtx = ctx;
+      osc.onended = () => {
+        chimeCtxsRef.current.delete(createdCtx);
+        if (createdCtx.state !== 'closed') {
+          createdCtx.close().catch(() => {});
+        }
+      };
       osc.start();
       osc.stop(ctx.currentTime + 0.85);
-    } catch (e) {}
+    } catch (e) {
+      if (ctx) {
+        chimeCtxsRef.current.delete(ctx);
+        if (ctx.state !== 'closed') {
+          ctx.close().catch(() => {});
+        }
+      }
+    }
   };
 
   const setPresetDuration = (mins: number) => {

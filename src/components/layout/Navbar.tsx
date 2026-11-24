@@ -76,7 +76,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   const goalMinutes = userProfile?.dailyGoalMinutes || 120;
   const goalPercentage = Math.min(100, Math.round((todayStudyMinutes / goalMinutes) * 100));
   const xpLeft = Math.max(0, levelInfo.xpRequiredForCurrentLevel - levelInfo.xpInCurrentLevel);
-  const streakCount = userProfile?.streakCount || 1;
+  const streakCount = userProfile?.streakCount ?? 0;
   const avatarKey = userProfile?.avatar || 'avatar-1';
   const avatarInfo = AVATAR_MAP[avatarKey] || AVATAR_MAP['avatar-1'];
 

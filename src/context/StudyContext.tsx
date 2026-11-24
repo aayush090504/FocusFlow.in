@@ -25,6 +25,12 @@ import {
   PomodoroSettings, 
   DEFAULT_POMODORO_SETTINGS 
 } from '../types';
+import {
+  formatLocalDateKey,
+  parseLocalDateKey,
+  extractLocalDateKey,
+  getLocalDaysDiff,
+} from '../utils/dateUtils';
 
 export interface DailyStudyMetric {
   day: string;
@@ -101,6 +107,7 @@ interface StudyContextType {
   weeklyDaysData: DailyStudyMetric[];
   activeGoals: Goal[];
   completedGoals: Goal[];
+  studiedSubjectCount: number;
 
   // Pomodoro & Timer Settings
   pomodoroSettings: PomodoroSettings;
@@ -123,7 +130,7 @@ interface StudyContextType {
   resetTimer: () => void;
   adjustTimerTime: (deltaSeconds: number) => void;
   skipBreak: () => void;
-  finishCurrentTimerSession: (notes?: string) => Promise<{ sessionId?: string; durationMinutes: number }>;
+  finishCurrentTimerSession: (notes?: string) => Promise<{ sessionId?: string; durationMinutes: number; ignored?: boolean }>;
   
   // UI & Modal States
   isZenModeActive: boolean;
@@ -158,8 +165,8 @@ const DEFAULT_SUBJECTS = [
 ];
 
 export const StudyProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user, userProfile, updatePomodoroSettings: authUpdatePomodoroSettings } = useAuth();
-  const { awardFocusSessionXp } = useGamification();
+  const { user, userProfile, updatePomodoroSettings: authUpdatePomodoroSettings, applyStreakUpdate, markDefaultSubjectsSeeded } = useAuth();
+  const { awardFocusSessionXp, awardGoalCompletionXp } = useGamification();
   const { 
     soundSettings, 
     playCue, 
@@ -176,6 +183,23 @@ export const StudyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [focusSessions, setFocusSessions] = useState<FocusSession[]>([]);
   const [goals, setGoals] = useState<Goal[]>([]);
   const [loadingData, setLoadingData] = useState<boolean>(true);
+  const [todayKey, setTodayKey] = useState<string>(() => formatLocalDateKey());
+
+  const userProfileRef = useRef(userProfile);
+  userProfileRef.current = userProfile;
+  const seedingSubjectsRef = useRef(false);
+  const subjectsSnapshotStateRef = useRef<{ uid: string; isEmpty: boolean } | null>(null);
+  const markDefaultSubjectsSeededRef = useRef(markDefaultSubjectsSeeded);
+  markDefaultSubjectsSeededRef.current = markDefaultSubjectsSeeded;
+
+  // Automatically roll over local calendar date at midnight without requiring reload
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const nextKey = formatLocalDateKey();
+      setTodayKey(prev => (prev !== nextKey ? nextKey : prev));
+    }, 60000);
+    return () => clearInterval(timer);
+  }, []);
 
   // Modals & Active UI state
   const [isTimerModalOpen, setIsTimerModalOpen] = useState(false);
@@ -360,9 +384,51 @@ export const StudyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // Guard against multiple simultaneous completion executions
   const isCompletingRef = useRef(false);
 
+  // Seed default subjects once when both userProfile and an empty initial subjects snapshot are ready
+  const maybeSeedDefaultSubjects = useCallback(async (
+    userId: string,
+    isSubjectsEmpty: boolean,
+    profile: typeof userProfileRef.current
+  ) => {
+    if (
+      !isSubjectsEmpty ||
+      seedingSubjectsRef.current ||
+      !profile ||
+      profile.id !== userId ||
+      profile.hasSeededDefaultSubjects === true ||
+      profile.hasCompletedOnboarding === true
+    ) {
+      return;
+    }
+
+    seedingSubjectsRef.current = true;
+    const subjectsPath = `users/${userId}/subjects`;
+    try {
+      await markDefaultSubjectsSeededRef.current();
+      for (const def of DEFAULT_SUBJECTS) {
+        const newId = `subj_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+        const subjectDoc = doc(db, 'users', userId, 'subjects', newId);
+        await setDoc(subjectDoc, {
+          id: newId,
+          userId,
+          name: def.name,
+          color: def.color,
+          icon: def.icon,
+          description: def.description,
+          targetHoursPerWeek: def.targetHoursPerWeek,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        });
+      }
+    } catch (err) {
+      handleFirestoreError(err, OperationType.CREATE, subjectsPath);
+    }
+  }, []);
+
   // Real-time Firestore Listeners for isolated user data
   useEffect(() => {
     if (!user) {
+      subjectsSnapshotStateRef.current = null;
       setSubjects([]);
       setTasks([]);
       setFocusSessions([]);
@@ -375,32 +441,28 @@ export const StudyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const userId = user.uid;
 
     // 1. Subjects Listener
+    seedingSubjectsRef.current = false;
+    subjectsSnapshotStateRef.current = null;
     const subjectsPath = `users/${userId}/subjects`;
     const subjectsRef = collection(db, 'users', userId, 'subjects');
     const unsubSubjects = onSnapshot(subjectsRef, async (snapshot) => {
       const items = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Subject));
-      if (items.length === 0 && snapshot.empty) {
-        try {
-          for (const def of DEFAULT_SUBJECTS) {
-            const newId = `subj_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-            const subjectDoc = doc(db, 'users', userId, 'subjects', newId);
-            await setDoc(subjectDoc, {
-              id: newId,
-              userId,
-              name: def.name,
-              color: def.color,
-              icon: def.icon,
-              description: def.description,
-              targetHoursPerWeek: def.targetHoursPerWeek,
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
-            });
-          }
-        } catch (err) {
-          handleFirestoreError(err, OperationType.CREATE, subjectsPath);
-        }
-      } else {
-        setSubjects(items);
+      const isSubjectsEmpty = items.length === 0 && snapshot.empty;
+      subjectsSnapshotStateRef.current = { uid: userId, isEmpty: isSubjectsEmpty };
+      setSubjects(items);
+
+      const profile = userProfileRef.current;
+      if (isSubjectsEmpty) {
+        await maybeSeedDefaultSubjects(userId, true, profile);
+      } else if (
+        items.length > 0 &&
+        profile &&
+        profile.id === userId &&
+        profile.hasSeededDefaultSubjects !== true &&
+        !seedingSubjectsRef.current
+      ) {
+        seedingSubjectsRef.current = true;
+        markDefaultSubjectsSeededRef.current().catch(() => {});
       }
     }, (err) => {
       handleFirestoreError(err, OperationType.GET, subjectsPath);
@@ -438,12 +500,21 @@ export const StudyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     });
 
     return () => {
+      subjectsSnapshotStateRef.current = null;
       unsubSubjects();
       unsubTasks();
       unsubSessions();
       unsubGoals();
     };
-  }, [user]);
+  }, [user, maybeSeedDefaultSubjects]);
+
+  // Complete subject seeding if the initial empty snapshot arrived before userProfile finished loading
+  useEffect(() => {
+    if (!user || !userProfile || userProfile.id !== user.uid) return;
+    if (subjectsSnapshotStateRef.current?.uid === user.uid && subjectsSnapshotStateRef.current.isEmpty) {
+      void maybeSeedDefaultSubjects(user.uid, true, userProfile);
+    }
+  }, [user, userProfile, maybeSeedDefaultSubjects]);
 
   // Log Focus Session to Firestore
   const logFocusSession = async (data: { durationMinutes: number; mode: FocusMode; subjectId?: string; taskId?: string; notes?: string }): Promise<string> => {
@@ -470,23 +541,26 @@ export const StudyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       };
       await setDoc(sessionDoc, newSession);
 
-      // Also update user's lastActiveDate and streak
-      const today = new Date().toISOString().split('T')[0];
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
-      const yesterdayStr = yesterday.toISOString().split('T')[0];
+      // Also update user's lastActiveDate and streak using local calendar dates
+      const today = formatLocalDateKey();
+      const currentProfile = userProfileRef.current;
+      const lastDate = currentProfile?.lastActiveDate;
+      const existingStreak = currentProfile?.streakCount ?? 0;
 
-      let newStreak = userProfile?.streakCount || 1;
-      const lastDate = userProfile?.lastActiveDate;
+      let newStreak = 1;
+      let nextActiveDate = today;
 
       if (lastDate) {
-        if (lastDate === today) {
-          // Already active today
-        } else if (lastDate === yesterdayStr) {
-          // Active yesterday, streak continues
-          newStreak = (userProfile?.streakCount || 0) + 1;
+        const diffDays = getLocalDaysDiff(lastDate, today);
+        if (diffDays <= 0) {
+          // Already active today (or ahead from legacy UTC write): start at 1 if broken (0), otherwise preserve
+          newStreak = existingStreak > 0 ? existingStreak : 1;
+          nextActiveDate = lastDate > today ? lastDate : today;
+        } else if (diffDays === 1) {
+          // Active yesterday locally, streak continues
+          newStreak = existingStreak + 1;
         } else {
-          // Missed days, reset streak
+          // Missed at least one full local day, restart current streak
           newStreak = 1;
         }
       } else {
@@ -495,10 +569,12 @@ export const StudyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
       const userDocRef = doc(db, 'users', user.uid);
       await updateDoc(userDocRef, {
-        lastActiveDate: today,
+        lastActiveDate: nextActiveDate,
         streakCount: newStreak,
         updatedAt: new Date().toISOString()
       }).catch(() => {});
+
+      applyStreakUpdate(nextActiveDate, newStreak);
 
       return sessionId;
     } catch (err) {
@@ -983,78 +1059,87 @@ export const StudyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }));
   };
 
-  const finishCurrentTimerSession = async (notes?: string): Promise<{ sessionId?: string; durationMinutes: number }> => {
-    // If currently in break mode, ending it earns 0 XP
-    if (activeTimer.mode === 'short_break' || activeTimer.mode === 'long_break' || activeTimer.phase === 'break') {
-      const focusSecs = pomodoroSettings.focusDurationMinutes * 60;
-      setActiveTimer(prev => ({
-        ...prev,
-        isRunning: false,
-        mode: 'pomodoro',
-        phase: 'focus',
-        secondsRemaining: focusSecs,
-        initialDurationSeconds: focusSecs,
-        stopwatchElapsedSeconds: 0,
-        accumulatedFocusedSeconds: 0,
-        focusSegmentStartTime: null,
-        targetEndTime: null,
-        stopwatchStartTime: null,
-      }));
-      return { sessionId: undefined, durationMinutes: 0 };
+  const finishCurrentTimerSession = async (notes?: string): Promise<{ sessionId?: string; durationMinutes: number; ignored?: boolean }> => {
+    if (isCompletingRef.current) {
+      return { sessionId: undefined, durationMinutes: 0, ignored: true };
     }
+    isCompletingRef.current = true;
 
-    const now = Date.now();
-    const currentSegmentDuration = (activeTimer.isRunning && activeTimer.phase === 'focus' && activeTimer.focusSegmentStartTime)
-      ? Math.max(0, Math.floor((now - activeTimer.focusSegmentStartTime) / 1000))
-      : 0;
-    const totalActualFocusedSeconds = activeTimer.accumulatedFocusedSeconds + currentSegmentDuration;
-
-    let minutes = 0;
-    if (activeTimer.mode === 'stopwatch') {
-      minutes = Math.floor(activeTimer.stopwatchElapsedSeconds / 60);
-    } else {
-      // Calculate strictly based on actual focused time spent
-      minutes = Math.floor(totalActualFocusedSeconds / 60);
-    }
-    
-    let loggedId: string | undefined = undefined;
-    // Strictly award 1 XP per minute of completed focus/study time
-    if (minutes >= 1 && (activeTimer.mode === 'pomodoro' || activeTimer.mode === 'custom' || activeTimer.mode === 'stopwatch')) {
-      loggedId = await logFocusSession({
-        durationMinutes: minutes,
-        mode: activeTimer.mode,
-        subjectId: activeTimer.subjectId,
-        taskId: activeTimer.taskId,
-        notes: notes || activeTimer.notes,
-      });
-
-      if (loggedId) {
-        await awardFocusSessionXp(loggedId, minutes);
+    try {
+      // If currently in break mode, ending it earns 0 XP
+      if (activeTimer.mode === 'short_break' || activeTimer.mode === 'long_break' || activeTimer.phase === 'break') {
+        const focusSecs = pomodoroSettings.focusDurationMinutes * 60;
+        setActiveTimer(prev => ({
+          ...prev,
+          isRunning: false,
+          mode: 'pomodoro',
+          phase: 'focus',
+          secondsRemaining: focusSecs,
+          initialDurationSeconds: focusSecs,
+          stopwatchElapsedSeconds: 0,
+          accumulatedFocusedSeconds: 0,
+          focusSegmentStartTime: null,
+          targetEndTime: null,
+          stopwatchStartTime: null,
+        }));
+        return { sessionId: undefined, durationMinutes: 0 };
       }
-    }
 
-    // Reset active timer to stopped state
-    if (activeTimer.mode === 'stopwatch') {
-      setActiveTimer(prev => ({
-        ...prev,
-        isRunning: false,
-        stopwatchElapsedSeconds: 0,
-        accumulatedFocusedSeconds: 0,
-        focusSegmentStartTime: null,
-        stopwatchStartTime: null,
-      }));
-    } else {
-      setActiveTimer(prev => ({
-        ...prev,
-        isRunning: false,
-        secondsRemaining: prev.initialDurationSeconds,
-        accumulatedFocusedSeconds: 0,
-        focusSegmentStartTime: null,
-        targetEndTime: null,
-      }));
-    }
+      const now = Date.now();
+      const currentSegmentDuration = (activeTimer.isRunning && activeTimer.phase === 'focus' && activeTimer.focusSegmentStartTime)
+        ? Math.max(0, Math.floor((now - activeTimer.focusSegmentStartTime) / 1000))
+        : 0;
+      const totalActualFocusedSeconds = activeTimer.accumulatedFocusedSeconds + currentSegmentDuration;
 
-    return { sessionId: loggedId, durationMinutes: minutes };
+      let minutes = 0;
+      if (activeTimer.mode === 'stopwatch') {
+        minutes = Math.floor(activeTimer.stopwatchElapsedSeconds / 60);
+      } else {
+        // Calculate strictly based on actual focused time spent
+        minutes = Math.floor(totalActualFocusedSeconds / 60);
+      }
+      
+      let loggedId: string | undefined = undefined;
+      // Strictly award 1 XP per minute of completed focus/study time
+      if (minutes >= 1 && (activeTimer.mode === 'pomodoro' || activeTimer.mode === 'custom' || activeTimer.mode === 'stopwatch')) {
+        loggedId = await logFocusSession({
+          durationMinutes: minutes,
+          mode: activeTimer.mode,
+          subjectId: activeTimer.subjectId,
+          taskId: activeTimer.taskId,
+          notes: notes || activeTimer.notes,
+        });
+
+        if (loggedId) {
+          await awardFocusSessionXp(loggedId, minutes);
+        }
+      }
+
+      // Reset active timer to stopped state
+      if (activeTimer.mode === 'stopwatch') {
+        setActiveTimer(prev => ({
+          ...prev,
+          isRunning: false,
+          stopwatchElapsedSeconds: 0,
+          accumulatedFocusedSeconds: 0,
+          focusSegmentStartTime: null,
+          stopwatchStartTime: null,
+        }));
+      } else {
+        setActiveTimer(prev => ({
+          ...prev,
+          isRunning: false,
+          secondsRemaining: prev.initialDurationSeconds,
+          accumulatedFocusedSeconds: 0,
+          focusSegmentStartTime: null,
+          targetEndTime: null,
+        }));
+      }
+
+      return { sessionId: loggedId, durationMinutes: minutes };
+    } finally {
+      isCompletingRef.current = false;
+    }
   };
 
   // Subject Actions
@@ -1098,6 +1183,10 @@ export const StudyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (!user) return;
     const path = `users/${user.uid}/subjects/${id}`;
     try {
+      if (userProfileRef.current?.hasSeededDefaultSubjects !== true) {
+        seedingSubjectsRef.current = true;
+        await markDefaultSubjectsSeededRef.current().catch(() => {});
+      }
       const docRef = doc(db, 'users', user.uid, 'subjects', id);
       await deleteDoc(docRef);
     } catch (err) {
@@ -1168,6 +1257,9 @@ export const StudyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (!user) throw new Error('Must be authenticated');
     const id = `goal_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
     const path = `users/${user.uid}/goals/${id}`;
+    const initialCurrent = data.currentValue || 0;
+    const startsCompleted = initialCurrent >= data.targetValue;
+    const nowIso = new Date().toISOString();
     try {
       const docRef = doc(db, 'users', user.uid, 'goals', id);
       const newGoal: Goal = {
@@ -1175,16 +1267,25 @@ export const StudyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         userId: user.uid,
         title: data.title.trim(),
         targetValue: data.targetValue,
-        currentValue: data.currentValue || 0,
+        currentValue: initialCurrent,
         unit: data.unit.trim(),
         targetDate: data.targetDate || '',
         subjectId: data.subjectId || '',
-        status: 'in_progress',
+        status: startsCompleted ? 'completed' : 'in_progress',
+        ...(startsCompleted ? { completedAt: nowIso } : {}),
         notes: data.notes?.trim() || '',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+        createdAt: nowIso,
+        updatedAt: nowIso,
       };
       await setDoc(docRef, newGoal);
+      if (startsCompleted) {
+        confetti({
+          particleCount: 70,
+          spread: 60,
+          origin: { y: 0.7 }
+        });
+        await awardGoalCompletionXp(id);
+      }
       return id;
     } catch (err) {
       handleFirestoreError(err, OperationType.CREATE, path);
@@ -1195,9 +1296,14 @@ export const StudyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const updateGoal = async (id: string, data: Partial<Goal>) => {
     if (!user) return;
     const path = `users/${user.uid}/goals/${id}`;
+    const existingGoal = goals.find(g => g.id === id);
+    const isTransitioningToComplete = existingGoal?.status !== 'completed' && data.status === 'completed';
     try {
       const docRef = doc(db, 'users', user.uid, 'goals', id);
       await updateDoc(docRef, { ...data, updatedAt: new Date().toISOString() });
+      if (isTransitioningToComplete) {
+        await awardGoalCompletionXp(id);
+      }
     } catch (err) {
       handleFirestoreError(err, OperationType.UPDATE, path);
     }
@@ -1226,29 +1332,35 @@ export const StudyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const goal = goals.find(g => g.id === goalId);
     if (!goal || !user) return;
     const newVal = Math.min(goal.targetValue, (goal.currentValue || 0) + amount);
-    const newStatus: GoalStatus = newVal >= goal.targetValue ? 'completed' : goal.status;
+    const isNowComplete = newVal >= goal.targetValue;
+    const newStatus: GoalStatus = isNowComplete ? 'completed' : goal.status;
     const completedAt = newStatus === 'completed' ? (goal.completedAt || new Date().toISOString()) : '';
+    if (isNowComplete && goal.status !== 'completed') {
+      confetti({
+        particleCount: 70,
+        spread: 60,
+        origin: { y: 0.7 }
+      });
+    }
     await updateGoal(goalId, { currentValue: newVal, status: newStatus, completedAt });
   };
 
-  // Calculated Dates & Ranges
-  const todayStr = useMemo(() => new Date().toISOString().split('T')[0], []);
+  // Calculated Local Dates & Ranges
+  const todayStr = todayKey;
   
-  // Start of current week (Monday)
+  // Start of current local week (Monday)
   const mondayStr = useMemo(() => {
-    const d = new Date();
+    const d = parseLocalDateKey(todayKey);
     const day = d.getDay();
     const diff = (day + 6) % 7; // days since Monday
     d.setDate(d.getDate() - diff);
-    d.setHours(0, 0, 0, 0);
-    return d.toISOString().split('T')[0];
-  }, []);
+    return formatLocalDateKey(d);
+  }, [todayKey]);
 
-  // Start of current month (1st)
+  // Start of current local month (1st)
   const monthStartStr = useMemo(() => {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
-  }, []);
+    return `${todayKey.slice(0, 7)}-01`;
+  }, [todayKey]);
 
   // Total Study Time (all-time focus minutes: strictly pomodoro, custom, stopwatch)
   const totalStudyMinutes = useMemo(() => {
@@ -1257,31 +1369,31 @@ export const StudyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       .reduce((acc, curr) => acc + (curr.durationMinutes || 0), 0);
   }, [focusSessions]);
 
-  // Today Study Time
+  // Today Study Time (local date)
   const todayStudyMinutes = useMemo(() => {
     return focusSessions
       .filter(s => {
-        const date = s.completedAt ? s.completedAt.split('T')[0] : (s.createdAt ? s.createdAt.split('T')[0] : '');
+        const date = extractLocalDateKey(s.completedAt || s.createdAt);
         return date === todayStr && (s.mode === 'pomodoro' || s.mode === 'custom' || s.mode === 'stopwatch');
       })
       .reduce((acc, curr) => acc + (curr.durationMinutes || 0), 0);
   }, [focusSessions, todayStr]);
 
-  // Weekly Study Time (from Monday through today)
+  // Weekly Study Time (from Monday through today, local dates)
   const weeklyStudyMinutes = useMemo(() => {
     return focusSessions
       .filter(s => {
-        const date = s.completedAt ? s.completedAt.split('T')[0] : (s.createdAt ? s.createdAt.split('T')[0] : '');
+        const date = extractLocalDateKey(s.completedAt || s.createdAt);
         return date >= mondayStr && (s.mode === 'pomodoro' || s.mode === 'custom' || s.mode === 'stopwatch');
       })
       .reduce((acc, curr) => acc + (curr.durationMinutes || 0), 0);
   }, [focusSessions, mondayStr]);
 
-  // Monthly Study Time (from 1st of month through today)
+  // Monthly Study Time (from 1st of month through today, local dates)
   const monthlyStudyMinutes = useMemo(() => {
     return focusSessions
       .filter(s => {
-        const date = s.completedAt ? s.completedAt.split('T')[0] : (s.createdAt ? s.createdAt.split('T')[0] : '');
+        const date = extractLocalDateKey(s.completedAt || s.createdAt);
         return date >= monthStartStr && (s.mode === 'pomodoro' || s.mode === 'custom' || s.mode === 'stopwatch');
       })
       .reduce((acc, curr) => acc + (curr.durationMinutes || 0), 0);
@@ -1292,30 +1404,39 @@ export const StudyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return focusSessions.filter(s => s.mode === 'pomodoro' || s.mode === 'custom' || s.mode === 'stopwatch').length;
   }, [focusSessions]);
 
-  // 7-day Weekly distribution data
+  // Unique subjects studied in focus sessions
+  const studiedSubjectCount = useMemo(() => {
+    const ids = new Set<string>();
+    focusSessions.forEach(s => {
+      if (
+        s.subjectId &&
+        (s.mode === 'pomodoro' || s.mode === 'custom' || s.mode === 'stopwatch')
+      ) {
+        ids.add(s.subjectId);
+      }
+    });
+    return ids.size;
+  }, [focusSessions]);
+
+  // 7-day Weekly distribution data (local calendar days)
   const weeklyDaysData = useMemo(() => {
     const labels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    const d = new Date();
-    const day = d.getDay();
-    const diff = (day + 6) % 7;
-    const baseMonday = new Date(d);
-    baseMonday.setDate(d.getDate() - diff);
-    baseMonday.setHours(0, 0, 0, 0);
+    const baseMonday = parseLocalDateKey(mondayStr);
 
     return labels.map((label, idx) => {
       const cur = new Date(baseMonday);
       cur.setDate(baseMonday.getDate() + idx);
-      const curStr = cur.toISOString().split('T')[0];
+      const curStr = formatLocalDateKey(cur);
 
       const mins = focusSessions
         .filter(s => {
-          const sDate = s.completedAt ? s.completedAt.split('T')[0] : (s.createdAt ? s.createdAt.split('T')[0] : '');
+          const sDate = extractLocalDateKey(s.completedAt || s.createdAt);
           return sDate === curStr && (s.mode === 'pomodoro' || s.mode === 'custom' || s.mode === 'stopwatch');
         })
         .reduce((sum, s) => sum + (s.durationMinutes || 0), 0);
 
       const tasksCompleted = tasks.filter(t => {
-        const tDate = t.completedAt ? t.completedAt.split('T')[0] : '';
+        const tDate = extractLocalDateKey(t.completedAt);
         return tDate === curStr && t.status === 'completed';
       }).length;
 
@@ -1327,12 +1448,12 @@ export const StudyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         isToday: curStr === todayStr,
       };
     });
-  }, [focusSessions, tasks, todayStr]);
+  }, [focusSessions, tasks, mondayStr, todayStr]);
 
-  // Tasks Computations
+  // Tasks Computations (accepts pending, legacy todo, and in_progress consistently)
   const completedTasksTodayCount = useMemo(() => {
     return tasks.filter(t => {
-      const date = t.completedAt ? t.completedAt.split('T')[0] : '';
+      const date = extractLocalDateKey(t.completedAt);
       return t.status === 'completed' && date === todayStr;
     }).length;
   }, [tasks, todayStr]);
@@ -1342,17 +1463,17 @@ export const StudyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, [tasks]);
 
   const pendingTasksCount = useMemo(() => {
-    return tasks.filter(t => t.status === 'pending').length;
+    return tasks.filter(t => t.status !== 'completed').length;
   }, [tasks]);
 
   const todayTasks = useMemo(() => {
-    return tasks.filter(t => t.dueDate === todayStr && t.status === 'pending');
+    return tasks.filter(t => extractLocalDateKey(t.dueDate) === todayStr && t.status !== 'completed');
   }, [tasks, todayStr]);
 
   const upcomingTasks = useMemo(() => {
     return tasks
-      .filter(t => t.status === 'pending' && t.dueDate && t.dueDate > todayStr)
-      .sort((a, b) => (a.dueDate || '').localeCompare(b.dueDate || ''));
+      .filter(t => t.status !== 'completed' && t.dueDate && extractLocalDateKey(t.dueDate) > todayStr)
+      .sort((a, b) => extractLocalDateKey(a.dueDate).localeCompare(extractLocalDateKey(b.dueDate)));
   }, [tasks, todayStr]);
 
   const recentSessions = useMemo(() => {
@@ -1427,6 +1548,7 @@ export const StudyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         weeklyDaysData,
         activeGoals,
         completedGoals,
+        studiedSubjectCount,
         pomodoroSettings,
         updatePomodoroSettings,
         activeTimer,

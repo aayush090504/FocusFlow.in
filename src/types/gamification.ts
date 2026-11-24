@@ -35,6 +35,7 @@ export interface GamificationProfile {
   notifiedStreakMilestones?: number[]; // Streak day counts that have already played notifications/toasts
   dailyBonusAwardedDates?: string[]; // YYYY-MM-DD dates where daily target bonus was granted
   streakBonusAwardedDates?: string[]; // YYYY-MM-DD dates where streak bonus was granted
+  longestStreak?: number;
   lastMilestoneCheck?: string;
 }
 

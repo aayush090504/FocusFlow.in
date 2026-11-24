@@ -75,6 +75,7 @@ export interface UserProfile {
   gamification?: import('./gamification').GamificationProfile;
   lastActiveDate?: string; // YYYY-MM-DD
   hasCompletedOnboarding?: boolean;
+  hasSeededDefaultSubjects?: boolean;
   onboardingCompletedAt?: string;
   createdAt?: string;
   updatedAt?: string;

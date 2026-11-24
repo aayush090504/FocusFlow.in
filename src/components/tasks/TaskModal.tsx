@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { X, Check, Calendar, Clock, AlertCircle, Tag, BookOpen, Trash2 } from 'lucide-react';
 import { useStudy } from '../../context/StudyContext';
 import { useToast } from '../../context/ToastContext';
-import { Priority, TaskStatus } from '../../types';
+import { Priority } from '../../types';
+import { formatLocalDateKey, extractLocalDateKey } from '../../utils/dateUtils';
 
 interface TaskModalProps {
   isOpen: boolean;
@@ -23,7 +24,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose }) => {
   const [title, setTitle] = useState('');
   const [subjectId, setSubjectId] = useState('');
   const [description, setDescription] = useState('');
-  const [dueDate, setDueDate] = useState(new Date().toISOString().split('T')[0]);
+  const [dueDate, setDueDate] = useState(() => formatLocalDateKey());
   const [priority, setPriority] = useState<Priority>('medium');
   const [estimatedMinutes, setEstimatedMinutes] = useState<number>(30);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -34,14 +35,14 @@ export const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose }) => {
       setTitle(selectedTaskForEdit.title);
       setSubjectId(selectedTaskForEdit.subjectId || '');
       setDescription(selectedTaskForEdit.description || '');
-      setDueDate(selectedTaskForEdit.dueDate || new Date().toISOString().split('T')[0]);
+      setDueDate(extractLocalDateKey(selectedTaskForEdit.dueDate) || formatLocalDateKey());
       setPriority(selectedTaskForEdit.priority);
       setEstimatedMinutes(selectedTaskForEdit.estimatedMinutes || 30);
     } else {
       setTitle('');
       setSubjectId(subjects[0]?.id || '');
       setDescription('');
-      setDueDate(new Date().toISOString().split('T')[0]);
+      setDueDate(formatLocalDateKey());
       setPriority('medium');
       setEstimatedMinutes(30);
     }

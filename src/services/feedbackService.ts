@@ -16,11 +16,24 @@ export interface SubmitFeedbackResult {
   error?: string;
 }
 
+function generateFeedbackId(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return `fb_${crypto.randomUUID().replace(/-/g, '')}`;
+  }
+  const randomSuffix = Math.random().toString(36).substring(2, 12);
+  return `fb_${Date.now()}_${randomSuffix}`;
+}
+
 /**
  * Submits user feedback or suggestion to the Firestore `feedback` collection
- * and triggers server-side email notification to Focus Flow support.
+ * and triggers authenticated server-side email notification to Focus Flow support.
  */
 export async function submitFeedback(payload: SubmitFeedbackPayload): Promise<SubmitFeedbackResult> {
+  const currentUser = auth.currentUser;
+  if (!currentUser) {
+    throw new Error('Please sign in to submit feedback.');
+  }
+
   const cleanMessage = sanitizeInput(payload.message || '');
   const cleanEmail = payload.email?.trim() || '';
 
@@ -37,27 +50,20 @@ export async function submitFeedback(payload: SubmitFeedbackPayload): Promise<Su
     throw new Error('Please enter a valid email address.');
   }
 
-  // Generate a cryptographically sound alphanumeric document ID
-  const randomSuffix = Math.random().toString(36).substring(2, 10);
-  const feedbackId = `fb_${Date.now()}_${randomSuffix}`;
-
-  const currentUserId = auth.currentUser?.uid;
+  const feedbackId = generateFeedbackId();
 
   // Prepare Firestore document adhering strictly to blueprint and security rules
-  const feedbackDocData: Record<string, any> = {
+  const feedbackDocData: Record<string, unknown> = {
     id: feedbackId,
     type: payload.type,
     message: cleanMessage,
     status: 'new',
+    userId: currentUser.uid,
     createdAt: serverTimestamp(),
   };
 
   if (cleanEmail) {
     feedbackDocData.email = cleanEmail;
-  }
-
-  if (currentUserId) {
-    feedbackDocData.userId = currentUserId;
   }
 
   // 1. Save to Firestore `feedback` collection
@@ -68,21 +74,22 @@ export async function submitFeedback(payload: SubmitFeedbackPayload): Promise<Su
     handleFirestoreError(err, OperationType.CREATE, `feedback/${feedbackId}`);
   }
 
-  // 2. Dispatch server-side email notification
+  // 2. Dispatch authenticated server-side email notification
   // Note: Feedback is already safely saved in Firestore. Email failure does NOT invalidate submission.
   let emailSent = false;
   try {
+    const idToken = await currentUser.getIdToken();
     const res = await fetch('/api/feedback/notify', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        Authorization: `Bearer ${idToken}`,
       },
       body: JSON.stringify({
         id: feedbackId,
         type: payload.type,
         message: cleanMessage,
         email: cleanEmail || undefined,
-        userId: currentUserId || undefined,
         timestamp: new Date().toISOString(),
       }),
     });
@@ -92,7 +99,11 @@ export async function submitFeedback(payload: SubmitFeedbackPayload): Promise<Su
       emailSent = !!data.emailSent;
     }
   } catch (emailErr) {
-    console.warn('[Feedback Notification] Server email trigger failed, but Firestore entry is recorded:', emailErr);
+    const errCode =
+      typeof emailErr === 'object' && emailErr !== null && 'code' in emailErr
+        ? String((emailErr as { code: unknown }).code)
+        : 'request_failed';
+    console.warn(`[Feedback Notification] Server email trigger failed (${errCode}), Firestore entry recorded.`);
   }
 
   return {
