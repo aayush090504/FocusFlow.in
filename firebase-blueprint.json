@@ -45,7 +45,10 @@
             "completionSound": { "type": "boolean" },
             "ambientType": { "type": "string", "maxLength": 40 },
             "ambientVolume": { "type": "number" },
-            "ambientAutoPlayOnFocus": { "type": "boolean" }
+            "ambientAutoPlayOnFocus": { "type": "boolean" },
+            "localMusicVolume": { "type": "number" },
+            "localMusicLoop": { "type": "boolean" },
+            "localMusicAutoPlayOnFocus": { "type": "boolean" }
           }
         },
         "gamification": {
@@ -54,14 +57,21 @@
             "totalXp": { "type": "number" },
             "level": { "type": "number" },
             "unlockedBadges": { "type": "object" },
+            "notifiedBadgeIds": { "type": "array" },
+            "awardedSessionIds": { "type": "array" },
             "awardedTaskIds": { "type": "array" },
             "awardedGoalIds": { "type": "array" },
+            "awardedStreakMilestones": { "type": "array" },
+            "notifiedStreakMilestones": { "type": "array" },
             "dailyBonusAwardedDates": { "type": "array" },
             "streakBonusAwardedDates": { "type": "array" },
+            "longestStreak": { "type": "number" },
             "lastMilestoneCheck": { "type": "string", "maxLength": 50 }
           }
         },
+        "deleted": { "type": "boolean" },
         "hasCompletedOnboarding": { "type": "boolean" },
+        "hasSeededDefaultSubjects": { "type": "boolean" },
         "onboardingCompletedAt": { "type": "string", "maxLength": 50 },
         "createdAt": { "type": "string", "format": "date-time" },
         "updatedAt": { "type": "string", "format": "date-time" }
@@ -76,7 +86,7 @@
         "id": { "type": "string", "maxLength": 128 },
         "userId": { "type": "string", "maxLength": 128 },
         "name": { "type": "string", "maxLength": 80 },
-        "color": { "type": "string", "maxLength": 20 },
+        "color": { "type": "string", "maxLength": 30 },
         "icon": { "type": "string", "maxLength": 40 },
         "description": { "type": "string", "maxLength": 500 },
         "targetHoursPerWeek": { "type": "number" },
@@ -117,7 +127,7 @@
         "durationMinutes": { "type": "number" },
         "mode": { "type": "string", "enum": ["pomodoro", "short_break", "long_break", "stopwatch", "custom"] },
         "notes": { "type": "string", "maxLength": 500 },
-        "completedAt": { "type": "string", "maxLength": 40 },
+        "completedAt": { "type": "string", "maxLength": 50 },
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["id", "userId", "durationMinutes", "mode"]
@@ -156,7 +166,7 @@
         "status": { "type": "string", "enum": ["new", "reviewed", "resolved"] },
         "createdAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["id", "type", "message", "status"]
+      "required": ["id", "type", "message", "status", "userId"]
     }
   },
   "firestore": {

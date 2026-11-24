@@ -20,93 +20,191 @@ service cloud.firestore {
     }
 
     function isValidId(id) {
-      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
     }
 
-    function isValidUser(data, userId) {
-      return data.id == userId &&
+    function isValidGamification(input) {
+      let g = input;
+      return g is map &&
+        (!('totalXp' in g) || (g.totalXp is number && g.totalXp >= 0)) &&
+        (!('level' in g) || (g.level is number && g.level >= 1)) &&
+        (!('longestStreak' in g) || (g.longestStreak is number && g.longestStreak >= 0)) &&
+        (!('unlockedBadges' in g) || g.unlockedBadges is map) &&
+        (!('notifiedBadgeIds' in g) || (g.notifiedBadgeIds is list && g.notifiedBadgeIds.size() <= 500)) &&
+        (!('awardedSessionIds' in g) || g.awardedSessionIds is list) &&
+        (!('awardedTaskIds' in g) || g.awardedTaskIds is list) &&
+        (!('awardedGoalIds' in g) || g.awardedGoalIds is list) &&
+        (!('awardedStreakMilestones' in g) || (g.awardedStreakMilestones is list && g.awardedStreakMilestones.size() <= 100)) &&
+        (!('notifiedStreakMilestones' in g) || (g.notifiedStreakMilestones is list && g.notifiedStreakMilestones.size() <= 100)) &&
+        (!('dailyBonusAwardedDates' in g) || g.dailyBonusAwardedDates is list) &&
+        (!('streakBonusAwardedDates' in g) || g.streakBonusAwardedDates is list) &&
+        (!('lastMilestoneCheck' in g) || (g.lastMilestoneCheck is string && g.lastMilestoneCheck.size() <= 50));
+    }
+
+    function isValidPomodoroSettings(input) {
+      let s = input;
+      return s is map &&
+        (!('focusDurationMinutes' in s) || (s.focusDurationMinutes is number && s.focusDurationMinutes >= 1 && s.focusDurationMinutes <= 240)) &&
+        (!('shortBreakDurationMinutes' in s) || (s.shortBreakDurationMinutes is number && s.shortBreakDurationMinutes >= 1 && s.shortBreakDurationMinutes <= 60)) &&
+        (!('longBreakDurationMinutes' in s) || (s.longBreakDurationMinutes is number && s.longBreakDurationMinutes >= 1 && s.longBreakDurationMinutes <= 120)) &&
+        (!('longBreakInterval' in s) || (s.longBreakInterval is number && s.longBreakInterval >= 1 && s.longBreakInterval <= 20)) &&
+        (!('autoStartBreaks' in s) || s.autoStartBreaks is bool) &&
+        (!('autoStartPomodoros' in s) || s.autoStartPomodoros is bool);
+    }
+
+    function isValidNotificationSettings(input) {
+      let s = input;
+      return s is map &&
+        (!('timerSound' in s) || s.timerSound is bool) &&
+        (!('breakSound' in s) || s.breakSound is bool) &&
+        (!('dailyReminder' in s) || s.dailyReminder is bool) &&
+        (!('streakAlerts' in s) || s.streakAlerts is bool) &&
+        (!('reminderTime' in s) || (s.reminderTime is string && s.reminderTime.size() <= 10));
+    }
+
+    function isValidSoundSettings(input) {
+      let s = input;
+      return s is map &&
+        (!('masterEnabled' in s) || s.masterEnabled is bool) &&
+        (!('sessionStartSound' in s) || s.sessionStartSound is bool) &&
+        (!('breakStartSound' in s) || s.breakStartSound is bool) &&
+        (!('completionSound' in s) || s.completionSound is bool) &&
+        (!('ambientAutoPlayOnFocus' in s) || s.ambientAutoPlayOnFocus is bool) &&
+        (!('localMusicLoop' in s) || s.localMusicLoop is bool) &&
+        (!('localMusicAutoPlayOnFocus' in s) || s.localMusicAutoPlayOnFocus is bool) &&
+        (!('volume' in s) || (s.volume is number && s.volume >= 0 && s.volume <= 100)) &&
+        (!('ambientVolume' in s) || (s.ambientVolume is number && s.ambientVolume >= 0 && s.ambientVolume <= 100)) &&
+        (!('localMusicVolume' in s) || (s.localMusicVolume is number && s.localMusicVolume >= 0 && s.localMusicVolume <= 100)) &&
+        (!('ambientType' in s) || (s.ambientType is string && s.ambientType.size() <= 40));
+    }
+
+    function isValidUserCreate(userId) {
+      let data = request.resource.data;
+      return data.keys().hasAll(['id', 'email']) &&
+        data.keys().hasOnly([
+          'id', 'email', 'displayName', 'photoURL', 'avatar', 'theme',
+          'dailyGoalMinutes', 'streakCount', 'pomodoroSettings',
+          'notificationSettings', 'soundSettings', 'gamification',
+          'hasCompletedOnboarding', 'hasSeededDefaultSubjects',
+          'onboardingCompletedAt', 'lastActiveDate', 'createdAt', 'updatedAt'
+        ]) &&
+        data.id == userId &&
         data.email is string && data.email.size() <= 254 &&
-        (!('displayName' in data) || (data.displayName is string && data.displayName.size() <= 100)) &&
-        (!('photoURL' in data) || (data.photoURL is string && data.photoURL.size() <= 2048)) &&
-        (!('avatar' in data) || (data.avatar is string && data.avatar.size() <= 100)) &&
-        (!('theme' in data) || (data.theme in ['light', 'dark', 'calm', 'ocean', 'sakura', 'cyber', 'classic'])) &&
+        (!('displayName' in data) || data.displayName is string && data.displayName.size() <= 100) &&
+        (!('photoURL' in data) || data.photoURL is string && data.photoURL.size() <= 2048) &&
+        (!('avatar' in data) || data.avatar is string && data.avatar.size() <= 100) &&
+        (!('theme' in data) || data.theme in ['light', 'dark', 'calm', 'ocean', 'sakura', 'cyber', 'classic']) &&
         (!('dailyGoalMinutes' in data) || (data.dailyGoalMinutes is number && data.dailyGoalMinutes >= 0 && data.dailyGoalMinutes <= 1440)) &&
         (!('streakCount' in data) || (data.streakCount is number && data.streakCount >= 0)) &&
-        (!('pomodoroSettings' in data) || data.pomodoroSettings is map) &&
-        (!('notificationSettings' in data) || data.notificationSettings is map) &&
-        (!('soundSettings' in data) || data.soundSettings is map) &&
-        (!('gamification' in data) || data.gamification is map) &&
+        (!('pomodoroSettings' in data) || isValidPomodoroSettings(data.pomodoroSettings)) &&
+        (!('notificationSettings' in data) || isValidNotificationSettings(data.notificationSettings)) &&
+        (!('soundSettings' in data) || isValidSoundSettings(data.soundSettings)) &&
+        (!('gamification' in data) || isValidGamification(data.gamification)) &&
+        (!('hasCompletedOnboarding' in data) || data.hasCompletedOnboarding is bool) &&
+        (!('hasSeededDefaultSubjects' in data) || data.hasSeededDefaultSubjects is bool) &&
+        (!('onboardingCompletedAt' in data) || data.onboardingCompletedAt is string && data.onboardingCompletedAt.size() <= 50) &&
+        (!('lastActiveDate' in data) || data.lastActiveDate is string && data.lastActiveDate.size() <= 30) &&
+        (!('createdAt' in data) || data.createdAt is string && data.createdAt.size() <= 50) &&
+        (!('updatedAt' in data) || data.updatedAt is string && data.updatedAt.size() <= 50);
+    }
+
+    function isValidUserUpdate(userId) {
+      let data = request.resource.data;
+      let prev = resource.data;
+      let changed = (prev is map) ? data.diff(prev).affectedKeys() : data.keys();
+      return data.id == userId &&
+        (!('id' in prev) || data.id == prev.id) &&
+        (!('createdAt' in prev) || data.createdAt == prev.createdAt) &&
+        changed.hasOnly([
+          'id', 'email', 'displayName', 'photoURL', 'avatar', 'theme',
+          'dailyGoalMinutes', 'streakCount', 'pomodoroSettings',
+          'notificationSettings', 'soundSettings', 'gamification',
+          'deleted', 'hasCompletedOnboarding', 'hasSeededDefaultSubjects',
+          'onboardingCompletedAt', 'lastActiveDate', 'createdAt', 'updatedAt'
+        ]) &&
+        (!('email' in data) || data.email is string && data.email.size() <= 254) &&
+        (!('displayName' in changed) || data.displayName is string && data.displayName.size() <= 100) &&
+        (!('photoURL' in changed) || data.photoURL is string && data.photoURL.size() <= 2048) &&
+        (!('avatar' in data) || data.avatar is string && data.avatar.size() <= 100) &&
+        (!('theme' in data) || data.theme in ['light', 'dark', 'calm', 'ocean', 'sakura', 'cyber', 'classic']) &&
+        (!('dailyGoalMinutes' in data) || (data.dailyGoalMinutes is number && data.dailyGoalMinutes >= 0 && data.dailyGoalMinutes <= 1440)) &&
+        (!('streakCount' in data) || (data.streakCount is number && data.streakCount >= 0)) &&
+        (!('pomodoroSettings' in changed) || isValidPomodoroSettings(data.pomodoroSettings)) &&
+        (!('notificationSettings' in changed) || isValidNotificationSettings(data.notificationSettings)) &&
+        (!('soundSettings' in changed) || isValidSoundSettings(data.soundSettings)) &&
+        (!('gamification' in changed) || isValidGamification(data.gamification)) &&
         (!('deleted' in data) || data.deleted is bool) &&
         (!('hasCompletedOnboarding' in data) || data.hasCompletedOnboarding is bool) &&
-        (!('onboardingCompletedAt' in data) || (data.onboardingCompletedAt is string && data.onboardingCompletedAt.size() <= 50)) &&
-        (!('lastActiveDate' in data) || (data.lastActiveDate is string && data.lastActiveDate.size() <= 30)) &&
-        (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 50)) &&
-        (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 50));
+        (!('hasSeededDefaultSubjects' in data) || data.hasSeededDefaultSubjects is bool) &&
+        (!('onboardingCompletedAt' in changed) || data.onboardingCompletedAt is string && data.onboardingCompletedAt.size() <= 50) &&
+        (!('lastActiveDate' in data) || data.lastActiveDate is string && data.lastActiveDate.size() <= 30) &&
+        (!('createdAt' in data) || data.createdAt is string && data.createdAt.size() <= 50) &&
+        (!('updatedAt' in data) || data.updatedAt is string && data.updatedAt.size() <= 50);
     }
 
     function isValidSubject(data, userId) {
       return data.userId == userId &&
-        data.name is string && data.name.size() > 0 && data.name.size() <= 80 &&
-        data.color is string && data.color.size() <= 30 &&
-        (!('id' in data) || (data.id is string && data.id.size() <= 128)) &&
-        (!('icon' in data) || (data.icon is string && data.icon.size() <= 40)) &&
-        (!('description' in data) || (data.description is string && data.description.size() <= 500)) &&
-        (!('targetHoursPerWeek' in data) || (data.targetHoursPerWeek is number && data.targetHoursPerWeek >= 0 && data.targetHoursPerWeek <= 168)) &&
-        (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 50)) &&
-        (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 50));
+        ('name' in data && data.name is string && data.name.size() > 0 && data.name.size() <= 80) &&
+        ('color' in data && data.color is string && data.color.size() <= 30) &&
+        (!('id' in data) || data.id == null || (data.id is string && data.id.size() <= 128)) &&
+        (!('icon' in data) || data.icon == null || (data.icon is string && data.icon.size() <= 40)) &&
+        (!('description' in data) || data.description == null || (data.description is string && data.description.size() <= 500)) &&
+        (!('targetHoursPerWeek' in data) || data.targetHoursPerWeek == null || (data.targetHoursPerWeek is number && data.targetHoursPerWeek >= 0 && data.targetHoursPerWeek <= 168)) &&
+        (!('createdAt' in data) || data.createdAt == null || (data.createdAt is string && data.createdAt.size() <= 50)) &&
+        (!('updatedAt' in data) || data.updatedAt == null || (data.updatedAt is string && data.updatedAt.size() <= 50));
     }
 
     function isValidTask(data, userId) {
       return data.userId == userId &&
-        data.title is string && data.title.size() > 0 && data.title.size() <= 160 &&
-        data.status in ['todo', 'pending', 'in_progress', 'completed'] &&
-        data.priority in ['low', 'medium', 'high'] &&
-        (!('id' in data) || (data.id is string && data.id.size() <= 128)) &&
-        (!('subjectId' in data) || (data.subjectId is string && data.subjectId.size() <= 128)) &&
-        (!('description' in data) || (data.description is string && data.description.size() <= 1000)) &&
-        (!('dueDate' in data) || (data.dueDate is string && data.dueDate.size() <= 40)) &&
-        (!('estimatedMinutes' in data) || (data.estimatedMinutes is number && data.estimatedMinutes >= 0 && data.estimatedMinutes <= 10080)) &&
-        (!('completedAt' in data) || (data.completedAt is string && data.completedAt.size() <= 50)) &&
-        (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 50)) &&
-        (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 50));
+        ('title' in data && data.title is string && data.title.size() > 0 && data.title.size() <= 160) &&
+        ('status' in data && data.status in ['todo', 'pending', 'in_progress', 'completed']) &&
+        ('priority' in data && data.priority in ['low', 'medium', 'high']) &&
+        (!('id' in data) || data.id == null || (data.id is string && data.id.size() <= 128)) &&
+        (!('subjectId' in data) || data.subjectId == null || (data.subjectId is string && data.subjectId.size() <= 128)) &&
+        (!('description' in data) || data.description == null || (data.description is string && data.description.size() <= 1000)) &&
+        (!('dueDate' in data) || data.dueDate == null || (data.dueDate is string && data.dueDate.size() <= 40)) &&
+        (!('estimatedMinutes' in data) || data.estimatedMinutes == null || (data.estimatedMinutes is number && data.estimatedMinutes >= 0 && data.estimatedMinutes <= 10080)) &&
+        (!('completedAt' in data) || data.completedAt == null || (data.completedAt is string && data.completedAt.size() <= 50)) &&
+        (!('createdAt' in data) || data.createdAt == null || (data.createdAt is string && data.createdAt.size() <= 50)) &&
+        (!('updatedAt' in data) || data.updatedAt == null || (data.updatedAt is string && data.updatedAt.size() <= 50));
     }
 
     function isValidFocusSession(data, userId) {
       return data.userId == userId &&
-        data.durationMinutes is number && data.durationMinutes >= 0 && data.durationMinutes <= 1440 &&
-        data.mode in ['pomodoro', 'short_break', 'long_break', 'stopwatch', 'custom'] &&
-        (!('id' in data) || (data.id is string && data.id.size() <= 128)) &&
-        (!('subjectId' in data) || (data.subjectId is string && data.subjectId.size() <= 128)) &&
-        (!('taskId' in data) || (data.taskId is string && data.taskId.size() <= 128)) &&
-        (!('notes' in data) || (data.notes is string && data.notes.size() <= 500)) &&
-        (!('completedAt' in data) || (data.completedAt is string && data.completedAt.size() <= 50)) &&
-        (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 50));
+        ('durationMinutes' in data && data.durationMinutes is number && data.durationMinutes >= 0 && data.durationMinutes <= 1440) &&
+        ('mode' in data && data.mode in ['pomodoro', 'short_break', 'long_break', 'stopwatch', 'custom']) &&
+        (!('id' in data) || data.id == null || (data.id is string && data.id.size() <= 128)) &&
+        (!('subjectId' in data) || data.subjectId == null || (data.subjectId is string && data.subjectId.size() <= 128)) &&
+        (!('taskId' in data) || data.taskId == null || (data.taskId is string && data.taskId.size() <= 128)) &&
+        (!('notes' in data) || data.notes == null || (data.notes is string && data.notes.size() <= 500)) &&
+        (!('completedAt' in data) || data.completedAt == null || (data.completedAt is string && data.completedAt.size() <= 50)) &&
+        (!('createdAt' in data) || data.createdAt == null || (data.createdAt is string && data.createdAt.size() <= 50));
     }
 
     function isValidGoal(data, userId) {
       return data.userId == userId &&
-        data.title is string && data.title.size() > 0 && data.title.size() <= 160 &&
-        data.targetValue is number && data.targetValue > 0 &&
-        data.unit is string && data.unit.size() <= 40 &&
-        data.status in ['active', 'in_progress', 'completed', 'archived'] &&
-        (!('id' in data) || (data.id is string && data.id.size() <= 128)) &&
-        (!('currentValue' in data) || data.currentValue is number) &&
-        (!('subjectId' in data) || (data.subjectId is string && data.subjectId.size() <= 128)) &&
-        (!('targetDate' in data) || (data.targetDate is string && data.targetDate.size() <= 40)) &&
-        (!('notes' in data) || (data.notes is string && data.notes.size() <= 500)) &&
-        (!('completedAt' in data) || (data.completedAt is string && data.completedAt.size() <= 50)) &&
-        (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 50)) &&
-        (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 50));
+        ('title' in data && data.title is string && data.title.size() > 0 && data.title.size() <= 160) &&
+        ('targetValue' in data && data.targetValue is number && data.targetValue > 0 && data.targetValue <= 1000000) &&
+        ('unit' in data && data.unit is string && data.unit.size() > 0 && data.unit.size() <= 40) &&
+        ('status' in data && data.status in ['active', 'in_progress', 'completed', 'archived']) &&
+        (!('id' in data) || data.id == null || (data.id is string && data.id.size() <= 128)) &&
+        (!('currentValue' in data) || data.currentValue == null || (data.currentValue is number && data.currentValue >= 0 && data.currentValue <= 1000000)) &&
+        (!('subjectId' in data) || data.subjectId == null || (data.subjectId is string && data.subjectId.size() <= 128)) &&
+        (!('targetDate' in data) || data.targetDate == null || (data.targetDate is string && data.targetDate.size() <= 40)) &&
+        (!('notes' in data) || data.notes == null || (data.notes is string && data.notes.size() <= 500)) &&
+        (!('completedAt' in data) || data.completedAt == null || (data.completedAt is string && data.completedAt.size() <= 50)) &&
+        (!('createdAt' in data) || data.createdAt == null || (data.createdAt is string && data.createdAt.size() <= 50)) &&
+        (!('updatedAt' in data) || data.updatedAt == null || (data.updatedAt is string && data.updatedAt.size() <= 50));
     }
 
     function isValidFeedback(data) {
-      return data.type in ['bug_report', 'problem_complaint', 'feature_suggestion', 'general_feedback'] &&
+      return isSignedIn() &&
+        data.type in ['bug_report', 'problem_complaint', 'feature_suggestion', 'general_feedback'] &&
         data.message is string && data.message.size() >= 5 && data.message.size() <= 2000 &&
-        data.status in ['new', 'reviewed', 'resolved'] &&
+        data.status == 'new' &&
+        data.userId is string && data.userId == request.auth.uid && data.userId.size() <= 128 &&
         (!('id' in data) || (data.id is string && data.id.size() <= 128)) &&
         (!('email' in data) || (data.email is string && data.email.size() <= 254)) &&
-        (!('userId' in data) || (data.userId is string && data.userId.size() <= 128)) &&
-        (isSignedIn() ? (!('userId' in data) || data.userId == request.auth.uid) : (!('userId' in data))) &&
         (!('createdAt' in data) || data.createdAt is timestamp || (data.createdAt is string && data.createdAt.size() <= 50));
     }
 
@@ -115,46 +213,118 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
-    // Feedback collection - user feedback, bug reports, problem/complaints, and suggestions
+    // Feedback collection - authenticated user feedback, bug reports, complaints, and suggestions
     match /feedback/{feedbackId} {
-      allow create: if isValidId(feedbackId) && isValidFeedback(incoming());
-      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() &&
+        isValidId(feedbackId) &&
+        incoming().keys().hasAll(['type', 'message', 'status', 'userId']) &&
+        incoming().keys().hasOnly(['id', 'type', 'message', 'status', 'email', 'userId', 'createdAt']) &&
+        (!('id' in incoming()) || incoming().id == feedbackId) &&
+        isValidFeedback(incoming());
+      allow get: if isSignedIn() &&
+        isValidId(feedbackId) &&
+        ('userId' in resource.data) &&
+        resource.data.userId == request.auth.uid;
+      allow list: if isSignedIn() &&
+        ('userId' in resource.data) &&
+        resource.data.userId == request.auth.uid;
       allow update, delete: if false;
     }
 
     // User collection and subcollections (Strict Attribute-Based Access Control)
     match /users/{userId} {
-      allow get: if isOwner(userId);
-      allow create: if isOwner(userId) && isValidUser(incoming(), userId);
-      allow update: if isOwner(userId) && isValidUser(incoming(), userId) && incoming().id == existing().id;
-      allow delete: if isOwner(userId);
+      allow get: if isOwner(userId) && isValidId(userId);
+      allow create: if isOwner(userId) &&
+        isValidId(userId) &&
+        isValidUserCreate(userId);
+      // Uses affectedKeys() allowlist and validates only modified fields/maps so legacy docs & Phase 1.1 dotted gamification updates stay fast and well below 1000 expressions
+      allow update: if isOwner(userId) &&
+        isValidId(userId) &&
+        isValidUserUpdate(userId);
+      allow delete: if isOwner(userId) && isValidId(userId);
 
       match /subjects/{subjectId} {
-        allow read: if isOwner(userId);
-        allow create: if isOwner(userId) && isValidId(subjectId) && isValidSubject(incoming(), userId);
-        allow update: if isOwner(userId) && isValidId(subjectId) && isValidSubject(incoming(), userId) && incoming().userId == existing().userId;
-        allow delete: if isOwner(userId);
+        allow get: if isOwner(userId) && isValidId(userId) && isValidId(subjectId);
+        allow list: if isOwner(userId) && isValidId(userId);
+        allow create: if isOwner(userId) &&
+          isValidId(userId) &&
+          isValidId(subjectId) &&
+          isValidSubject(incoming(), userId) &&
+          (!('id' in incoming()) || incoming().id == subjectId) &&
+          incoming().keys().hasAll(['userId', 'name', 'color']) &&
+          incoming().keys().hasOnly(['id', 'userId', 'name', 'color', 'icon', 'description', 'targetHoursPerWeek', 'createdAt', 'updatedAt']);
+        allow update: if isOwner(userId) &&
+          isValidId(userId) &&
+          isValidId(subjectId) &&
+          isValidSubject(incoming(), userId) &&
+          (!('userId' in existing()) || incoming().userId == existing().userId) &&
+          (!('id' in existing()) || incoming().id == existing().id) &&
+          (!('createdAt' in existing()) || incoming().createdAt == existing().createdAt) &&
+          (existing() is map ? incoming().diff(existing()).affectedKeys() : incoming().keys()).hasOnly(['name', 'color', 'icon', 'description', 'targetHoursPerWeek', 'updatedAt']);
+        allow delete: if isOwner(userId) && isValidId(userId) && isValidId(subjectId);
       }
 
       match /tasks/{taskId} {
-        allow read: if isOwner(userId);
-        allow create: if isOwner(userId) && isValidId(taskId) && isValidTask(incoming(), userId);
-        allow update: if isOwner(userId) && isValidId(taskId) && isValidTask(incoming(), userId) && incoming().userId == existing().userId;
-        allow delete: if isOwner(userId);
+        allow get: if isOwner(userId) && isValidId(userId) && isValidId(taskId);
+        allow list: if isOwner(userId) && isValidId(userId);
+        allow create: if isOwner(userId) &&
+          isValidId(userId) &&
+          isValidId(taskId) &&
+          isValidTask(incoming(), userId) &&
+          (!('id' in incoming()) || incoming().id == taskId) &&
+          incoming().keys().hasAll(['userId', 'title', 'status', 'priority']) &&
+          incoming().keys().hasOnly(['id', 'userId', 'subjectId', 'title', 'description', 'dueDate', 'priority', 'status', 'estimatedMinutes', 'completedAt', 'createdAt', 'updatedAt']);
+        allow update: if isOwner(userId) &&
+          isValidId(userId) &&
+          isValidId(taskId) &&
+          isValidTask(incoming(), userId) &&
+          (!('userId' in existing()) || incoming().userId == existing().userId) &&
+          (!('id' in existing()) || incoming().id == existing().id) &&
+          (!('createdAt' in existing()) || incoming().createdAt == existing().createdAt) &&
+          (existing() is map ? incoming().diff(existing()).affectedKeys() : incoming().keys()).hasOnly(['subjectId', 'title', 'description', 'dueDate', 'priority', 'status', 'estimatedMinutes', 'completedAt', 'createdAt', 'updatedAt']);
+        allow delete: if isOwner(userId) && isValidId(userId) && isValidId(taskId);
       }
 
       match /focusSessions/{sessionId} {
-        allow read: if isOwner(userId);
-        allow create: if isOwner(userId) && isValidId(sessionId) && isValidFocusSession(incoming(), userId);
-        allow update: if isOwner(userId) && isValidId(sessionId) && isValidFocusSession(incoming(), userId) && incoming().userId == existing().userId;
-        allow delete: if isOwner(userId);
+        allow get: if isOwner(userId) && isValidId(userId) && isValidId(sessionId);
+        allow list: if isOwner(userId) && isValidId(userId);
+        allow create: if isOwner(userId) &&
+          isValidId(userId) &&
+          isValidId(sessionId) &&
+          isValidFocusSession(incoming(), userId) &&
+          (!('id' in incoming()) || incoming().id == sessionId) &&
+          incoming().keys().hasAll(['userId', 'durationMinutes', 'mode']) &&
+          incoming().keys().hasOnly(['id', 'userId', 'subjectId', 'taskId', 'durationMinutes', 'mode', 'notes', 'completedAt', 'createdAt']);
+        allow update: if isOwner(userId) &&
+          isValidId(userId) &&
+          isValidId(sessionId) &&
+          isValidFocusSession(incoming(), userId) &&
+          (!('userId' in existing()) || incoming().userId == existing().userId) &&
+          (!('id' in existing()) || incoming().id == existing().id) &&
+          (!('createdAt' in existing()) || incoming().createdAt == existing().createdAt) &&
+          (existing() is map ? incoming().diff(existing()).affectedKeys() : incoming().keys()).hasOnly(['subjectId', 'taskId', 'durationMinutes', 'mode', 'notes', 'completedAt']);
+        allow delete: if isOwner(userId) && isValidId(userId) && isValidId(sessionId);
       }
 
       match /goals/{goalId} {
-        allow read: if isOwner(userId);
-        allow create: if isOwner(userId) && isValidId(goalId) && isValidGoal(incoming(), userId);
-        allow update: if isOwner(userId) && isValidId(goalId) && isValidGoal(incoming(), userId) && incoming().userId == existing().userId;
-        allow delete: if isOwner(userId);
+        allow get: if isOwner(userId) && isValidId(userId) && isValidId(goalId);
+        allow list: if isOwner(userId) && isValidId(userId);
+        allow create: if isOwner(userId) &&
+          isValidId(userId) &&
+          isValidId(goalId) &&
+          isValidGoal(incoming(), userId) &&
+          (!('id' in incoming()) || incoming().id == goalId) &&
+          incoming().keys().hasAll(['userId', 'title', 'targetValue', 'unit', 'status']) &&
+          incoming().keys().hasOnly(['id', 'userId', 'title', 'subjectId', 'targetDate', 'targetValue', 'currentValue', 'unit', 'status', 'notes', 'completedAt', 'createdAt', 'updatedAt']);
+        allow update: if isOwner(userId) &&
+          isValidId(userId) &&
+          isValidId(goalId) &&
+          isValidGoal(incoming(), userId) &&
+          (!('userId' in existing()) || incoming().userId == existing().userId) &&
+          (!('id' in existing()) || incoming().id == existing().id) &&
+          (!('createdAt' in existing()) || incoming().createdAt == existing().createdAt) &&
+          (existing() is map ? incoming().diff(existing()).affectedKeys() : incoming().keys()).hasOnly(['title', 'subjectId', 'targetDate', 'targetValue', 'currentValue', 'unit', 'status', 'notes', 'completedAt', 'createdAt', 'updatedAt']);
+        allow delete: if isOwner(userId) && isValidId(userId) && isValidId(goalId);
       }
     }
   }
