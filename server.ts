@@ -15,6 +15,7 @@ import {
   SlidingWindowRateLimiter,
 } from './server/feedbackSecurity.js';
 import { createSecurityHeadersMiddleware } from './server/securityHeaders.js';
+import { resolveSeoRoute, injectSeoIntoHtml } from './server/seoRoutes.js';
 
 dotenv.config();
 
@@ -24,6 +25,7 @@ const __dirname = path.dirname(__filename);
 const isProduction = process.env.NODE_ENV === 'production';
 const PORT = process.env.PORT || 3000;
 const SUPPORT_EMAIL = process.env.FEEDBACK_NOTIFICATION_EMAIL || 'focusflow42@gmail.com';
+const STATIC_ASSET_EXTENSION_RE = /\.(js|mjs|css|png|jpe?g|webp|gif|svg|ico|woff2?|ttf|eot|xml|txt|json|webmanifest|map)$/i;
 
 function resolveFirebaseProjectId(): string {
   if (process.env.FIREBASE_PROJECT_ID) {
@@ -63,6 +65,10 @@ async function startServer() {
   // Trust single Cloud Run / load balancer proxy hop for req.ip and X-Forwarded-Proto
   app.set('trust proxy', 1);
   app.use(createSecurityHeadersMiddleware({ isProduction }));
+  app.use('/api', (_req, res, next) => {
+    res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+    next();
+  });
   app.use(
     '/api/csp-report',
     express.json({ limit: '8kb', type: ['application/csp-report', 'application/json'] })
@@ -214,13 +220,78 @@ ${message}
     const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({
       server: { middlewareMode: true, hmr: process.env.DISABLE_HMR !== 'true' },
-      appType: 'spa',
+      appType: 'custom',
     });
     app.use(vite.middlewares);
+
+    app.get('*', async (req, res, next) => {
+      if (req.path.startsWith('/api/') || STATIC_ASSET_EXTENSION_RE.test(req.path)) {
+        return next();
+      }
+      try {
+        const seo = resolveSeoRoute(req.path);
+        if (seo.redirectTo) {
+          const queryIdx = req.originalUrl.indexOf('?');
+          const query = queryIdx >= 0 ? req.originalUrl.slice(queryIdx) : '';
+          return res.redirect(301, `${seo.redirectTo}${query}`);
+        }
+        const rawHtml = fs.readFileSync(path.resolve(__dirname, 'index.html'), 'utf8');
+        const transformedHtml = await vite.transformIndexHtml(req.originalUrl, rawHtml);
+        const finalHtml = injectSeoIntoHtml(transformedHtml, seo);
+
+        if (seo.robots.startsWith('noindex')) {
+          res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+        }
+        res.setHeader('Content-Type', 'text/html; charset=utf-8');
+        res.setHeader('Cache-Control', 'no-cache');
+        return res.status(seo.statusCode).send(finalHtml);
+      } catch (err) {
+        vite.ssrFixStacktrace(err as Error);
+        return next(err);
+      }
+    });
   } else {
-    app.use(express.static(path.resolve(__dirname, 'dist')));
-    app.get('*', (_req, res) => {
-      res.sendFile(path.resolve(__dirname, 'dist', 'index.html'));
+    const distDir = path.resolve(__dirname, 'dist');
+    const distHtmlTemplate = fs.readFileSync(path.join(distDir, 'index.html'), 'utf8');
+
+    app.use(
+      express.static(distDir, {
+        index: false,
+        setHeaders: (res, filePath) => {
+          if (/-[A-Za-z0-9_-]{8,}\.(js|css)$/.test(filePath)) {
+            res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+          } else if (/\.(png|jpe?g|webp|svg|ico|woff2?)$/i.test(filePath)) {
+            res.setHeader('Cache-Control', 'public, max-age=86400');
+          } else {
+            res.setHeader('Cache-Control', 'public, max-age=3600');
+          }
+        },
+      })
+    );
+
+    app.get('*', (req, res) => {
+      if (req.path.startsWith('/api/') || STATIC_ASSET_EXTENSION_RE.test(req.path)) {
+        res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+        return res.status(404).type('text/plain').send('Not Found');
+      }
+
+      const seo = resolveSeoRoute(req.path);
+      if (seo.redirectTo) {
+        const queryIdx = req.originalUrl.indexOf('?');
+        const query = queryIdx >= 0 ? req.originalUrl.slice(queryIdx) : '';
+        return res.redirect(301, `${seo.redirectTo}${query}`);
+      }
+
+      if (seo.robots.startsWith('noindex')) {
+        res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+        res.setHeader('Cache-Control', 'no-store');
+      } else {
+        res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate');
+      }
+
+      const finalHtml = injectSeoIntoHtml(distHtmlTemplate, seo);
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      return res.status(seo.statusCode).send(finalHtml);
     });
   }
 

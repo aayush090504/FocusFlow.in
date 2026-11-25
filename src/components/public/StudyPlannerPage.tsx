@@ -19,6 +19,7 @@ import {
 import { SEOHead } from '../seo/SEOHead';
 import { PublicHeader } from './PublicHeader';
 import { PublicFooter } from './PublicFooter';
+import { SpaLink } from '../common/SpaLink';
 
 interface StudyPlannerPageProps {
   onNavigate: (path: string) => void;
@@ -157,17 +158,17 @@ Total Weekly Planned: ${totalAllocatedDailyHours} hours`;
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 selection:bg-emerald-500 selection:text-white font-sans antialiased">
       <SEOHead
-        title="Academic Study Planner & Weekly Budget Calculator | Focus Flow"
-        description="Free interactive college study planner tool. Calculate credit-hour study loads, build balanced weekly schedules, and eliminate exam cramming with Focus Flow."
+        title="Free Study Planner & Weekly Budget Matrix | Focus Flow"
+        description="Build your semester schedule with our free study planner and free student planner calculator. Balance weekly course hours and prevent exam cramming."
         canonicalUrl="https://focusflow.in/study-planner"
         schemaJson={jsonLd}
         keywords={[
-          'study planner online',
-          'college study schedule calculator',
+          'free study planner',
+          'free student planner',
+          'productivity tools for students',
+          'study workspace',
           'weekly study budget planner',
-          'student semester planner',
-          'credit hour study calculator',
-          'focus flow study planner'
+          'student productivity app'
         ]}
       />
 
@@ -183,13 +184,13 @@ Total Weekly Planned: ${totalAllocatedDailyHours} hours`;
         <nav aria-label="Breadcrumb" className="mb-8">
           <ol className="flex items-center gap-2 text-xs text-slate-400">
             <li>
-              <button onClick={() => onNavigate('/')} className="hover:text-emerald-400 transition-colors">
+              <SpaLink to="/" onNavigate={onNavigate} className="hover:text-emerald-400 transition-colors">
                 Home
-              </button>
+              </SpaLink>
             </li>
-            <li><ChevronRight className="w-3.5 h-3.5" /></li>
+            <li aria-hidden="true"><ChevronRight className="w-3.5 h-3.5" /></li>
             <li className="text-slate-200 font-medium" aria-current="page">
-              Study Planner & Calculator
+              Free Study Planner &amp; Calculator
             </li>
           </ol>
         </nav>
@@ -197,14 +198,14 @@ Total Weekly Planned: ${totalAllocatedDailyHours} hours`;
         {/* Header */}
         <header className="text-center max-w-3xl mx-auto mb-10">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-950/80 border border-emerald-800/60 text-xs font-semibold text-emerald-300 mb-4">
-            <Calendar className="w-3.5 h-3.5 text-emerald-400" />
+            <Calendar className="w-3.5 h-3.5 text-emerald-400" aria-hidden="true" />
             <span>Academic Load Calibration</span>
           </div>
           <h1 className="text-3xl sm:text-5xl font-black text-white tracking-tight leading-tight mb-4">
-            Academic Study Planner & Weekly Budget Matrix
+            Free Study Planner &amp; Weekly Student Budget Matrix
           </h1>
-          <p className="text-base text-slate-400 leading-relaxed">
-            Enter your semester courses to calculate the scientifically optimal weekly study hours, distribute your daily schedule, and eliminate last-minute cramming.
+          <p className="text-base text-slate-300 leading-relaxed">
+            Use this free student planner to calculate optimal weekly study hours for your courses, balance your daily schedule, and eliminate last-minute exam cramming.
           </p>
         </header>
 
@@ -219,7 +220,7 @@ Total Weekly Planned: ${totalAllocatedDailyHours} hours`;
               <div className="text-3xl font-mono font-black text-white mt-1">
                 {totalCredits} <span className="text-sm font-sans font-medium text-slate-400">Credits</span>
               </div>
-              <p className="text-[11px] text-slate-500 mt-1">Full-time undergraduate load</p>
+              <p className="text-[11px] text-slate-400 mt-1">Full-time undergraduate load</p>
             </div>
 
             <div className="bg-slate-950/80 border border-slate-800 rounded-2xl p-5">
@@ -227,7 +228,7 @@ Total Weekly Planned: ${totalAllocatedDailyHours} hours`;
               <div className="text-3xl font-mono font-black text-emerald-400 mt-1">
                 {recommendedWeeklyHours} <span className="text-sm font-sans font-medium text-slate-400">Hrs/Wk</span>
               </div>
-              <p className="text-[11px] text-slate-500 mt-1">Based on course difficulty multipliers</p>
+              <p className="text-[11px] text-slate-400 mt-1">Based on course difficulty multipliers</p>
             </div>
 
             <div className="bg-slate-950/80 border border-slate-800 rounded-2xl p-5">
@@ -235,7 +236,7 @@ Total Weekly Planned: ${totalAllocatedDailyHours} hours`;
               <div className="text-3xl font-mono font-black text-indigo-400 mt-1">
                 {totalAllocatedDailyHours} <span className="text-sm font-sans font-medium text-slate-400">Hrs/Wk</span>
               </div>
-              <p className="text-[11px] text-slate-500 mt-1">
+              <p className="text-[11px] text-slate-400 mt-1">
                 {totalAllocatedDailyHours >= recommendedWeeklyHours ? '✅ Target pace satisfied' : '⚠️ Under target by ' + (recommendedWeeklyHours - totalAllocatedDailyHours) + 'h'}
               </p>
             </div>
@@ -281,15 +282,17 @@ Total Weekly Planned: ${totalAllocatedDailyHours} hours`;
 
                     <div className="text-right min-w-[70px]">
                       <div className="text-sm font-mono font-bold text-emerald-400">{course.weeklyHours} hrs</div>
-                      <div className="text-[10px] text-slate-500">per week</div>
+                      <div className="text-[10px] text-slate-400">per week</div>
                     </div>
 
                     <button
+                      type="button"
                       onClick={() => removeCourse(course.id)}
-                      className="p-2 rounded-xl text-slate-500 hover:text-rose-400 hover:bg-slate-900 transition-colors"
+                      className="p-2 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-slate-900 transition-colors"
                       title="Remove course"
+                      aria-label={`Remove ${course.name}`}
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 className="w-4 h-4" aria-hidden="true" />
                     </button>
                   </div>
                 </div>
@@ -300,12 +303,14 @@ Total Weekly Planned: ${totalAllocatedDailyHours} hours`;
             <div className="mt-4 flex flex-col sm:flex-row gap-2">
               <input
                 type="text"
+                aria-label="New course name"
                 value={newCourseName}
                 onChange={e => setNewCourseName(e.target.value)}
                 placeholder="Add new course (e.g. Physics II Mechanics)..."
                 className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
               />
               <select
+                aria-label="Course credit hours"
                 value={newCredits}
                 onChange={e => setNewCredits(Number(e.target.value))}
                 className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-emerald-500"
@@ -317,10 +322,11 @@ Total Weekly Planned: ${totalAllocatedDailyHours} hours`;
                 <option value={5}>5 Credits</option>
               </select>
               <button
+                type="button"
                 onClick={addCourse}
                 className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-md shadow-emerald-600/30"
               >
-                <Plus className="w-4 h-4" />
+                <Plus className="w-4 h-4" aria-hidden="true" />
                 <span>Add Course</span>
               </button>
             </div>
@@ -329,24 +335,26 @@ Total Weekly Planned: ${totalAllocatedDailyHours} hours`;
           {/* Daily Schedule Allocation Bar */}
           <div className="pt-6 border-t border-slate-800">
             <h2 className="text-sm font-bold uppercase tracking-wider text-slate-300 mb-4 flex items-center gap-2">
-              <Calendar className="w-4 h-4 text-indigo-400" />
+              <Calendar className="w-4 h-4 text-indigo-400" aria-hidden="true" />
               <span>Weekly Daily Hour Distribution</span>
             </h2>
 
             <div className="grid grid-cols-2 sm:grid-cols-7 gap-2.5">
               {Object.entries(schedule).map(([day, hours]) => (
                 <div key={day} className="bg-slate-950 border border-slate-800 rounded-xl p-3 text-center">
-                  <span className="text-[11px] font-bold text-slate-400 block mb-1">{day.slice(0, 3)}</span>
+                  <label htmlFor={`schedule-${day}`} className="text-[11px] font-bold text-slate-300 block mb-1">{day.slice(0, 3)}</label>
                   <input
+                    id={`schedule-${day}`}
                     type="number"
                     step="0.5"
                     min="0"
                     max="14"
+                    aria-label={`${day} study hours`}
                     value={hours}
                     onChange={e => setSchedule({ ...schedule, [day]: Math.max(0, Number(e.target.value)) })}
                     className="w-full bg-slate-900 border border-slate-700/60 rounded-lg px-2 py-1 text-center font-mono font-bold text-sm text-white focus:outline-none focus:border-emerald-500"
                   />
-                  <span className="text-[10px] text-slate-500 mt-1 block">hrs</span>
+                  <span className="text-[10px] text-slate-400 mt-1 block">hrs</span>
                 </div>
               ))}
             </div>
@@ -422,40 +430,43 @@ Total Weekly Planned: ${totalAllocatedDailyHours} hours`;
 
           {/* Internal Linking Hub */}
           <section className="bg-slate-900/60 border border-slate-800 rounded-2xl p-6 sm:p-8">
-            <h3 className="text-lg font-bold text-white mb-4">Integrated Study Tools</h3>
+            <h2 className="text-lg font-bold text-white mb-4">Integrated Productivity Tools for Students</h2>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <button 
-                onClick={() => onNavigate('/study-timer')}
-                className="p-4 rounded-xl bg-slate-950 border border-slate-800 hover:border-emerald-500 text-left transition-all group"
+              <SpaLink
+                to="/study-timer"
+                onNavigate={onNavigate}
+                className="p-4 rounded-xl bg-slate-950 border border-slate-800 hover:border-emerald-500 text-left transition-all group block"
               >
                 <div className="text-sm font-bold text-white group-hover:text-emerald-400 flex items-center justify-between">
                   <span>Online Study Timer</span>
-                  <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+                  <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" aria-hidden="true" />
                 </div>
                 <p className="text-xs text-slate-400 mt-1">Time your study blocks with calming soundscapes.</p>
-              </button>
+              </SpaLink>
 
-              <button 
-                onClick={() => onNavigate('/pomodoro-timer')}
-                className="p-4 rounded-xl bg-slate-950 border border-slate-800 hover:border-emerald-500 text-left transition-all group"
+              <SpaLink
+                to="/pomodoro-timer"
+                onNavigate={onNavigate}
+                className="p-4 rounded-xl bg-slate-950 border border-slate-800 hover:border-emerald-500 text-left transition-all group block"
               >
                 <div className="text-sm font-bold text-white group-hover:text-emerald-400 flex items-center justify-between">
-                  <span>Pomodoro Timer (25/5)</span>
-                  <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+                  <span>Free Pomodoro Timer (25/5)</span>
+                  <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" aria-hidden="true" />
                 </div>
                 <p className="text-xs text-slate-400 mt-1">Execute your planned hours with 25-minute sprints.</p>
-              </button>
+              </SpaLink>
 
-              <button 
-                onClick={() => onNavigate('/focus-timer')}
-                className="p-4 rounded-xl bg-slate-950 border border-slate-800 hover:border-emerald-500 text-left transition-all group"
+              <SpaLink
+                to="/focus-timer"
+                onNavigate={onNavigate}
+                className="p-4 rounded-xl bg-slate-950 border border-slate-800 hover:border-emerald-500 text-left transition-all group block"
               >
                 <div className="text-sm font-bold text-white group-hover:text-emerald-400 flex items-center justify-between">
-                  <span>Deep Work Shield</span>
-                  <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+                  <span>Focus Timer for Studying</span>
+                  <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" aria-hidden="true" />
                 </div>
                 <p className="text-xs text-slate-400 mt-1">Eliminate digital distractions and lock in focus.</p>
-              </button>
+              </SpaLink>
             </div>
           </section>
 

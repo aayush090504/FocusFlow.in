@@ -19,6 +19,7 @@ import {
 import { SEOHead } from '../seo/SEOHead';
 import { PublicHeader } from './PublicHeader';
 import { PublicFooter } from './PublicFooter';
+import { SpaLink } from '../common/SpaLink';
 
 interface PomodoroTimerPageProps {
   onNavigate: (path: string) => void;
@@ -216,17 +217,17 @@ export const PomodoroTimerPage: React.FC<PomodoroTimerPageProps> = ({
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 selection:bg-rose-500 selection:text-white font-sans antialiased">
       <SEOHead
-        title="Scientific Pomodoro Timer (25/5) Online | Focus Flow"
-        description="Free, distraction-free online Pomodoro timer for students. Built-in 25-minute focus intervals, 5-minute short breaks, 4-cycle long breaks, and integrated task checklists."
+        title="Free Pomodoro Timer (25/5) Online | Focus Flow"
+        description="Use our free Pomodoro timer for studying with 25-minute focus sprints, 5-minute breaks, 4-cycle tracking, and built-in student task checklists."
         canonicalUrl="https://focusflow.in/pomodoro-timer"
         schemaJson={jsonLd}
         keywords={[
-          'pomodoro timer',
-          '25 5 timer',
-          'pomodoro technique online',
-          'study pomodoro',
-          'pomodoro cycle tracker',
-          'francesco cirillo timer'
+          'free pomodoro timer',
+          'online study timer',
+          'focus timer for studying',
+          'student productivity app',
+          '25 5 pomodoro timer',
+          'study workspace'
         ]}
       />
 
@@ -242,13 +243,13 @@ export const PomodoroTimerPage: React.FC<PomodoroTimerPageProps> = ({
         <nav aria-label="Breadcrumb" className="mb-8">
           <ol className="flex items-center gap-2 text-xs text-slate-400">
             <li>
-              <button onClick={() => onNavigate('/')} className="hover:text-rose-400 transition-colors">
+              <SpaLink to="/" onNavigate={onNavigate} className="hover:text-rose-400 transition-colors">
                 Home
-              </button>
+              </SpaLink>
             </li>
-            <li><ChevronRight className="w-3.5 h-3.5" /></li>
+            <li aria-hidden="true"><ChevronRight className="w-3.5 h-3.5" /></li>
             <li className="text-slate-200 font-medium" aria-current="page">
-              Scientific Pomodoro Timer
+              Free Pomodoro Timer
             </li>
           </ol>
         </nav>
@@ -256,14 +257,14 @@ export const PomodoroTimerPage: React.FC<PomodoroTimerPageProps> = ({
         {/* Hero */}
         <header className="text-center max-w-3xl mx-auto mb-10">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-rose-950/80 border border-rose-800/60 text-xs font-semibold text-rose-300 mb-4">
-            <Flame className="w-3.5 h-3.5 text-rose-400" />
+            <Flame className="w-3.5 h-3.5 text-rose-400" aria-hidden="true" />
             <span>Classic 25/5 Pomodoro Cadence</span>
           </div>
           <h1 className="text-3xl sm:text-5xl font-black text-white tracking-tight leading-tight mb-4">
-            Scientific Pomodoro Timer & Interval Tracker
+            Free Pomodoro Timer &amp; Study Interval Tracker
           </h1>
-          <p className="text-base text-slate-400 leading-relaxed">
-            Break through academic procrastination and sustain intense mental stamina with 25-minute high-focus sprints and structured recovery breaks.
+          <p className="text-base text-slate-300 leading-relaxed">
+            Beat procrastination with a free Pomodoro timer designed for students. Run focused 25-minute sprints, automate 5-minute breaks, and track completed intervals seamlessly.
           </p>
         </header>
 
@@ -339,7 +340,7 @@ export const PomodoroTimerPage: React.FC<PomodoroTimerPageProps> = ({
                   </span>
                 </div>
                 <div className="flex-1 flex items-start justify-center pt-1">
-                  <span className="text-[11px] text-slate-500 font-medium">
+                  <span className="text-[11px] text-slate-400 font-medium">
                     Pomodoro Cycle
                   </span>
                 </div>
@@ -349,6 +350,7 @@ export const PomodoroTimerPage: React.FC<PomodoroTimerPageProps> = ({
             {/* Controls */}
             <div className="flex items-center gap-3 mt-6">
               <button
+                type="button"
                 onClick={() => setIsRunning(!isRunning)}
                 className={`px-8 py-3.5 rounded-2xl font-bold text-sm text-white shadow-xl transition-all flex items-center gap-2 ${
                   mode === 'work' 
@@ -358,15 +360,17 @@ export const PomodoroTimerPage: React.FC<PomodoroTimerPageProps> = ({
                     : 'bg-indigo-600 hover:bg-indigo-500 shadow-indigo-600/30'
                 }`}
               >
-                {isRunning ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                {isRunning ? <Pause className="w-4 h-4" aria-hidden="true" /> : <Play className="w-4 h-4" aria-hidden="true" />}
                 <span>{isRunning ? 'Pause Interval' : 'Start Pomodoro'}</span>
               </button>
               <button
+                type="button"
                 onClick={resetTimer}
                 className="p-3.5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors"
                 title="Reset Interval"
+                aria-label="Reset Pomodoro timer"
               >
-                <RotateCcw className="w-4 h-4" />
+                <RotateCcw className="w-4 h-4" aria-hidden="true" />
               </button>
             </div>
 
@@ -403,22 +407,24 @@ export const PomodoroTimerPage: React.FC<PomodoroTimerPageProps> = ({
             </div>
             <div className="space-y-2">
               {tasks.map(task => (
-                <div
+                <button
+                  type="button"
                   key={task.id}
                   onClick={() => toggleTask(task.id)}
-                  className={`p-3 rounded-xl border flex items-center gap-3 cursor-pointer transition-all ${
+                  aria-pressed={task.done}
+                  className={`w-full text-left p-3 rounded-xl border flex items-center gap-3 cursor-pointer transition-all ${
                     task.done ? 'bg-slate-950/40 border-slate-800/60 opacity-60' : 'bg-slate-950 border-slate-800 hover:border-slate-700'
                   }`}
                 >
                   <div className={`w-4 h-4 rounded flex items-center justify-center border transition-colors ${
                     task.done ? 'bg-rose-600 border-rose-600 text-white' : 'border-slate-600 bg-slate-800'
                   }`}>
-                    {task.done && <Check className="w-3 h-3" />}
+                    {task.done && <Check className="w-3 h-3" aria-hidden="true" />}
                   </div>
                   <span className={`text-xs font-medium ${task.done ? 'line-through text-slate-400' : 'text-slate-200'}`}>
                     {task.text}
                   </span>
-                </div>
+                </button>
               ))}
             </div>
           </div>
@@ -477,40 +483,43 @@ export const PomodoroTimerPage: React.FC<PomodoroTimerPageProps> = ({
 
           {/* Internal Linking Hub */}
           <section className="bg-slate-900/60 border border-slate-800 rounded-2xl p-6 sm:p-8">
-            <h3 className="text-lg font-bold text-white mb-4">Related Study Tools on Focus Flow</h3>
+            <h2 className="text-lg font-bold text-white mb-4">Related Productivity Tools for Students</h2>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <button 
-                onClick={() => onNavigate('/study-timer')}
-                className="p-4 rounded-xl bg-slate-950 border border-slate-800 hover:border-rose-500 text-left transition-all group"
+              <SpaLink
+                to="/study-timer"
+                onNavigate={onNavigate}
+                className="p-4 rounded-xl bg-slate-950 border border-slate-800 hover:border-rose-500 text-left transition-all group block"
               >
                 <div className="text-sm font-bold text-white group-hover:text-rose-400 flex items-center justify-between">
-                  <span>Study Timer with Sounds</span>
-                  <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+                  <span>Online Study Timer</span>
+                  <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" aria-hidden="true" />
                 </div>
                 <p className="text-xs text-slate-400 mt-1">Study with rain, white noise, and binaural alpha soundscapes.</p>
-              </button>
+              </SpaLink>
 
-              <button 
-                onClick={() => onNavigate('/study-planner')}
-                className="p-4 rounded-xl bg-slate-950 border border-slate-800 hover:border-rose-500 text-left transition-all group"
+              <SpaLink
+                to="/study-planner"
+                onNavigate={onNavigate}
+                className="p-4 rounded-xl bg-slate-950 border border-slate-800 hover:border-rose-500 text-left transition-all group block"
               >
                 <div className="text-sm font-bold text-white group-hover:text-rose-400 flex items-center justify-between">
-                  <span>Academic Study Planner</span>
-                  <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+                  <span>Free Study Planner</span>
+                  <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" aria-hidden="true" />
                 </div>
                 <p className="text-xs text-slate-400 mt-1">Plan weekly course budgets and exam countdown milestones.</p>
-              </button>
+              </SpaLink>
 
-              <button 
-                onClick={() => onNavigate('/focus-timer')}
-                className="p-4 rounded-xl bg-slate-950 border border-slate-800 hover:border-rose-500 text-left transition-all group"
+              <SpaLink
+                to="/focus-timer"
+                onNavigate={onNavigate}
+                className="p-4 rounded-xl bg-slate-950 border border-slate-800 hover:border-rose-500 text-left transition-all group block"
               >
                 <div className="text-sm font-bold text-white group-hover:text-rose-400 flex items-center justify-between">
-                  <span>Deep Work Shield</span>
-                  <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+                  <span>Focus Timer for Studying</span>
+                  <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" aria-hidden="true" />
                 </div>
                 <p className="text-xs text-slate-400 mt-1">Eliminate digital tabs and switch into intense focus mode.</p>
-              </button>
+              </SpaLink>
             </div>
           </section>
 

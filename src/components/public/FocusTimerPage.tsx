@@ -21,6 +21,7 @@ import {
 import { SEOHead } from '../seo/SEOHead';
 import { PublicHeader } from './PublicHeader';
 import { PublicFooter } from './PublicFooter';
+import { SpaLink } from '../common/SpaLink';
 
 interface FocusTimerPageProps {
   onNavigate: (path: string) => void;
@@ -122,17 +123,17 @@ export const FocusTimerPage: React.FC<FocusTimerPageProps> = ({
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 selection:bg-violet-500 selection:text-white font-sans antialiased">
       <SEOHead
-        title="Distraction-Free Deep Work Focus Timer | Focus Flow"
-        description="Free online deep work focus timer for students. Eliminate digital distractions with pre-flight focus checklists, full-screen focus shields, and single-task anchors."
+        title="Focus Timer for Studying & Deep Work | Focus Flow"
+        description="Stay locked in with a distraction-free focus timer for studying. Complete pre-flight focus checklists, block interruptions, and anchor single-task deep work."
         canonicalUrl="https://focusflow.in/focus-timer"
         schemaJson={jsonLd}
         keywords={[
+          'focus timer for studying',
+          'online study timer',
           'deep work focus timer',
-          'distraction free timer',
-          'student focus shield',
-          'attention residue focus timer',
-          'full screen study timer',
-          'focus flow deep work'
+          'productivity tools for students',
+          'student productivity app',
+          'study workspace'
         ]}
       />
 
@@ -148,13 +149,13 @@ export const FocusTimerPage: React.FC<FocusTimerPageProps> = ({
         <nav aria-label="Breadcrumb" className="mb-8">
           <ol className="flex items-center gap-2 text-xs text-slate-400">
             <li>
-              <button onClick={() => onNavigate('/')} className="hover:text-violet-400 transition-colors">
+              <SpaLink to="/" onNavigate={onNavigate} className="hover:text-violet-400 transition-colors">
                 Home
-              </button>
+              </SpaLink>
             </li>
-            <li><ChevronRight className="w-3.5 h-3.5" /></li>
+            <li aria-hidden="true"><ChevronRight className="w-3.5 h-3.5" /></li>
             <li className="text-slate-200 font-medium" aria-current="page">
-              Deep Work Focus Timer
+              Focus Timer for Studying
             </li>
           </ol>
         </nav>
@@ -162,14 +163,14 @@ export const FocusTimerPage: React.FC<FocusTimerPageProps> = ({
         {/* Header */}
         <header className="text-center max-w-3xl mx-auto mb-10">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-violet-950/80 border border-violet-800/60 text-xs font-semibold text-violet-300 mb-4">
-            <Shield className="w-3.5 h-3.5 text-violet-400" />
-            <span>Distraction Shield & Deep Work Engine</span>
+            <Shield className="w-3.5 h-3.5 text-violet-400" aria-hidden="true" />
+            <span>Distraction Shield &amp; Deep Work Engine</span>
           </div>
           <h1 className="text-3xl sm:text-5xl font-black text-white tracking-tight leading-tight mb-4">
-            Distraction-Free Deep Work Focus Timer
+            Distraction-Free Focus Timer for Studying
           </h1>
-          <p className="text-base text-slate-400 leading-relaxed">
-            Protect your cognitive bandwidth from attention residue. Complete your pre-flight environment checklist and enter uninterrupted academic focus.
+          <p className="text-base text-slate-300 leading-relaxed">
+            Protect your cognitive bandwidth from attention residue. Complete your pre-flight environment checklist and enter uninterrupted deep work focus sessions.
           </p>
         </header>
 
@@ -243,7 +244,7 @@ export const FocusTimerPage: React.FC<FocusTimerPageProps> = ({
                   </span>
                 </div>
                 <div className="flex-1 flex items-start justify-center pt-1">
-                  <span className="text-[11px] text-slate-500 font-medium">
+                  <span className="text-[11px] text-slate-400 font-medium">
                     Shield Protected
                   </span>
                 </div>
@@ -252,18 +253,21 @@ export const FocusTimerPage: React.FC<FocusTimerPageProps> = ({
 
             <div className="flex items-center gap-3 mt-6">
               <button
+                type="button"
                 onClick={() => setIsRunning(!isRunning)}
                 className="px-8 py-3.5 rounded-2xl bg-violet-600 hover:bg-violet-500 active:bg-violet-700 text-white font-bold text-sm shadow-xl shadow-violet-600/30 transition-all flex items-center gap-2"
               >
-                {isRunning ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                {isRunning ? <Pause className="w-4 h-4" aria-hidden="true" /> : <Play className="w-4 h-4" aria-hidden="true" />}
                 <span>{isRunning ? 'Pause Focus Session' : 'Enter Deep Work'}</span>
               </button>
               <button
+                type="button"
                 onClick={resetTimer}
                 className="p-3.5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors"
                 title="Reset Session"
+                aria-label="Reset focus timer"
               >
-                <RotateCcw className="w-4 h-4" />
+                <RotateCcw className="w-4 h-4" aria-hidden="true" />
               </button>
             </div>
           </div>
@@ -286,20 +290,22 @@ export const FocusTimerPage: React.FC<FocusTimerPageProps> = ({
 
               <div className="space-y-2">
                 {checklist.map(item => (
-                  <div
+                  <button
+                    type="button"
                     key={item.id}
                     onClick={() => toggleChecklist(item.id)}
-                    className="flex items-center gap-2.5 p-2 rounded-xl bg-slate-900 border border-slate-800/80 hover:border-slate-700 cursor-pointer transition-all"
+                    aria-pressed={item.done}
+                    className="w-full text-left flex items-center gap-2.5 p-2 rounded-xl bg-slate-900 border border-slate-800/80 hover:border-slate-700 cursor-pointer transition-all"
                   >
                     <div className={`w-4 h-4 rounded flex items-center justify-center border transition-colors ${
                       item.done ? 'bg-violet-600 border-violet-600 text-white' : 'border-slate-600 bg-slate-800'
                     }`}>
-                      {item.done && <Check className="w-3 h-3" />}
+                      {item.done && <Check className="w-3 h-3" aria-hidden="true" />}
                     </div>
-                    <span className={`text-xs ${item.done ? 'text-slate-300 font-medium' : 'text-slate-400'}`}>
+                    <span className={`text-xs ${item.done ? 'text-slate-200 font-medium' : 'text-slate-400'}`}>
                       {item.text}
                     </span>
-                  </div>
+                  </button>
                 ))}
               </div>
             </div>
@@ -308,7 +314,7 @@ export const FocusTimerPage: React.FC<FocusTimerPageProps> = ({
             <div className="bg-slate-950/80 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between">
               <div>
                 <label htmlFor="target-task-input" className="text-xs font-bold text-slate-300 flex items-center gap-1.5 mb-2">
-                  <Target className="w-3.5 h-3.5 text-violet-400" />
+                  <Target className="w-3.5 h-3.5 text-violet-400" aria-hidden="true" />
                   <span>Single-Task Anchor</span>
                 </label>
                 <textarea
@@ -321,8 +327,8 @@ export const FocusTimerPage: React.FC<FocusTimerPageProps> = ({
                 />
               </div>
 
-              <div className="text-[11px] text-slate-500 mt-2 flex items-center gap-1.5">
-                <Lock className="w-3 h-3 text-violet-400" />
+              <div className="text-[11px] text-slate-400 mt-2 flex items-center gap-1.5">
+                <Lock className="w-3 h-3 text-violet-400" aria-hidden="true" />
                 <span>Single-tasking prevents cognitive switching penalties.</span>
               </div>
             </div>
@@ -382,40 +388,43 @@ export const FocusTimerPage: React.FC<FocusTimerPageProps> = ({
 
           {/* Internal Linking Hub */}
           <section className="bg-slate-900/60 border border-slate-800 rounded-2xl p-6 sm:p-8">
-            <h3 className="text-lg font-bold text-white mb-4">Complementary Academic Tools</h3>
+            <h2 className="text-lg font-bold text-white mb-4">Complementary Productivity Tools for Students</h2>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <button 
-                onClick={() => onNavigate('/study-timer')}
-                className="p-4 rounded-xl bg-slate-950 border border-slate-800 hover:border-violet-500 text-left transition-all group"
+              <SpaLink
+                to="/study-timer"
+                onNavigate={onNavigate}
+                className="p-4 rounded-xl bg-slate-950 border border-slate-800 hover:border-violet-500 text-left transition-all group block"
               >
                 <div className="text-sm font-bold text-white group-hover:text-violet-400 flex items-center justify-between">
                   <span>Online Study Timer</span>
-                  <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+                  <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" aria-hidden="true" />
                 </div>
                 <p className="text-xs text-slate-400 mt-1">Study intervals with calming rain and alpha wave audio.</p>
-              </button>
+              </SpaLink>
 
-              <button 
-                onClick={() => onNavigate('/pomodoro-timer')}
-                className="p-4 rounded-xl bg-slate-950 border border-slate-800 hover:border-violet-500 text-left transition-all group"
+              <SpaLink
+                to="/pomodoro-timer"
+                onNavigate={onNavigate}
+                className="p-4 rounded-xl bg-slate-950 border border-slate-800 hover:border-violet-500 text-left transition-all group block"
               >
                 <div className="text-sm font-bold text-white group-hover:text-violet-400 flex items-center justify-between">
-                  <span>Pomodoro Timer (25/5)</span>
-                  <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+                  <span>Free Pomodoro Timer (25/5)</span>
+                  <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" aria-hidden="true" />
                 </div>
                 <p className="text-xs text-slate-400 mt-1">Classic 25-minute sprints and restorative short breaks.</p>
-              </button>
+              </SpaLink>
 
-              <button 
-                onClick={() => onNavigate('/study-planner')}
-                className="p-4 rounded-xl bg-slate-950 border border-slate-800 hover:border-violet-500 text-left transition-all group"
+              <SpaLink
+                to="/study-planner"
+                onNavigate={onNavigate}
+                className="p-4 rounded-xl bg-slate-950 border border-slate-800 hover:border-violet-500 text-left transition-all group block"
               >
                 <div className="text-sm font-bold text-white group-hover:text-violet-400 flex items-center justify-between">
-                  <span>Semester Study Planner</span>
-                  <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+                  <span>Free Study Planner</span>
+                  <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" aria-hidden="true" />
                 </div>
                 <p className="text-xs text-slate-400 mt-1">Calculate optimal credit loads and daily study hours.</p>
-              </button>
+              </SpaLink>
             </div>
           </section>
 

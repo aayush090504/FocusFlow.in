@@ -66,11 +66,27 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const SESSION_HINT_KEY = 'focusflow_session_hint';
+
 const LOCAL_STORAGE_PREF_KEYS = [
   'focusflow_theme',
   'focusflow_sound_settings',
   'focusflow_pomodoro_settings',
+  SESSION_HINT_KEY,
 ] as const;
+
+function setSessionHint(signedIn: boolean): void {
+  try {
+    if (typeof window === 'undefined') return;
+    if (signedIn) {
+      window.localStorage.setItem(SESSION_HINT_KEY, '1');
+    } else {
+      window.localStorage.removeItem(SESSION_HINT_KEY);
+    }
+  } catch {
+    // Ignore storage unavailability
+  }
+}
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -263,6 +279,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setLoading(true);
       setError(null);
       if (currentUser) {
+        setSessionHint(true);
         setUser(currentUser);
         try {
           await syncUserProfile(currentUser);
@@ -270,6 +287,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           console.error('Failed to sync profile.');
         }
       } else {
+        setSessionHint(false);
         setUser(null);
         setUserProfile(null);
       }
@@ -382,6 +400,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setError(null);
     try {
       await signOut(auth);
+      setSessionHint(false);
       setUser(null);
       setUserProfile(null);
     } catch (err: unknown) {

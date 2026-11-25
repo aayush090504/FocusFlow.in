@@ -1,0 +1,21 @@
+{
+  "name": "Focus Flow — Study Workspace & Focus Timer",
+  "short_name": "Focus Flow",
+  "description": "Free student productivity app and study workspace with a free Pomodoro timer, online study timer, and free study planner.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#020617",
+  "theme_color": "#020617",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

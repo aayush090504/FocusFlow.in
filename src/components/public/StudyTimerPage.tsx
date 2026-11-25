@@ -22,6 +22,7 @@ import {
 import { SEOHead } from '../seo/SEOHead';
 import { PublicHeader } from './PublicHeader';
 import { PublicFooter } from './PublicFooter';
+import { SpaLink } from '../common/SpaLink';
 
 interface StudyTimerPageProps {
   onNavigate: (path: string) => void;
@@ -307,16 +308,16 @@ export const StudyTimerPage: React.FC<StudyTimerPageProps> = ({
     <div className="min-h-screen bg-slate-950 text-slate-100 selection:bg-indigo-500 selection:text-white font-sans antialiased">
       <SEOHead
         title="Free Online Study Timer with Soundscapes | Focus Flow"
-        description="Free customizable online study timer for students. Features ambient soundscapes (rain, white noise, alpha beats), session note taking, and interval pacing to maximize retention."
+        description="Use our free online study timer and focus timer for studying with ambient rain, white noise, alpha waves, and session notes to boost retention."
         canonicalUrl="https://focusflow.in/study-timer"
         schemaJson={jsonLd}
         keywords={[
           'online study timer',
+          'focus timer for studying',
+          'student productivity app',
           'study timer with sounds',
-          'free student study timer',
-          'focus timer online',
-          'binaural beats study timer',
-          'active recall study timer'
+          'free pomodoro timer',
+          'study workspace'
         ]}
       />
 
@@ -333,11 +334,11 @@ export const StudyTimerPage: React.FC<StudyTimerPageProps> = ({
         <nav aria-label="Breadcrumb" className="mb-8">
           <ol className="flex items-center gap-2 text-xs text-slate-400">
             <li>
-              <button onClick={() => onNavigate('/')} className="hover:text-indigo-400 transition-colors">
+              <SpaLink to="/" onNavigate={onNavigate} className="hover:text-indigo-400 transition-colors">
                 Home
-              </button>
+              </SpaLink>
             </li>
-            <li><ChevronRight className="w-3.5 h-3.5" /></li>
+            <li aria-hidden="true"><ChevronRight className="w-3.5 h-3.5" /></li>
             <li className="text-slate-200 font-medium" aria-current="page">
               Online Study Timer
             </li>
@@ -347,14 +348,14 @@ export const StudyTimerPage: React.FC<StudyTimerPageProps> = ({
         {/* Hero & Intro Header */}
         <header className="text-center max-w-3xl mx-auto mb-10">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-950/80 border border-indigo-800/60 text-xs font-semibold text-indigo-300 mb-4">
-            <Clock className="w-3.5 h-3.5 text-indigo-400" />
+            <Clock className="w-3.5 h-3.5 text-indigo-400" aria-hidden="true" />
             <span>Academic Performance Timer</span>
           </div>
           <h1 className="text-3xl sm:text-5xl font-black text-white tracking-tight leading-tight mb-4">
             Free Online Study Timer with Ambient Soundscapes
           </h1>
-          <p className="text-base text-slate-400 leading-relaxed">
-            Eliminate cognitive fatigue and protect your attention span with scientifically calibrated study intervals, calming ambient sound generators, and quick session logs.
+          <p className="text-base text-slate-300 leading-relaxed">
+            Eliminate cognitive fatigue with a distraction-free focus timer for studying. Choose calibrated study intervals, calming ambient sound generators, and session notes inside your browser.
           </p>
         </header>
 
@@ -442,11 +443,13 @@ export const StudyTimerPage: React.FC<StudyTimerPageProps> = ({
                 <span>{isRunning ? 'Pause Interval' : 'Start Studying'}</span>
               </button>
               <button
+                type="button"
                 onClick={resetTimer}
                 className="p-3.5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors"
                 title="Reset Timer"
+                aria-label="Reset study timer"
               >
-                <RotateCcw className="w-4 h-4" />
+                <RotateCcw className="w-4 h-4" aria-hidden="true" />
               </button>
             </div>
           </div>
@@ -504,7 +507,7 @@ export const StudyTimerPage: React.FC<StudyTimerPageProps> = ({
                 placeholder="e.g. Read Chapter 5 & solve problems 1-10..."
                 className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
               />
-              <div className="flex items-center justify-between text-[11px] text-slate-500 mt-2">
+              <div className="flex items-center justify-between text-[11px] text-slate-400 mt-2">
                 <span>Completed today: {completedSessionsCount} sessions</span>
                 <span>{completedSessionsCount * sessionMinutes} mins logged</span>
               </div>
@@ -566,40 +569,43 @@ export const StudyTimerPage: React.FC<StudyTimerPageProps> = ({
 
           {/* Internal Linking Hub */}
           <section className="bg-slate-900/60 border border-slate-800 rounded-2xl p-6 sm:p-8">
-            <h3 className="text-lg font-bold text-white mb-4">Explore More Academic Productivity Tools</h3>
+            <h2 className="text-lg font-bold text-white mb-4">Explore More Productivity Tools for Students</h2>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <button 
-                onClick={() => onNavigate('/pomodoro-timer')}
-                className="p-4 rounded-xl bg-slate-950 border border-slate-800 hover:border-indigo-500 text-left transition-all group"
+              <SpaLink
+                to="/pomodoro-timer"
+                onNavigate={onNavigate}
+                className="p-4 rounded-xl bg-slate-950 border border-slate-800 hover:border-indigo-500 text-left transition-all group block"
               >
                 <div className="text-sm font-bold text-white group-hover:text-indigo-400 flex items-center justify-between">
-                  <span>Pomodoro Timer (25/5)</span>
-                  <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+                  <span>Free Pomodoro Timer (25/5)</span>
+                  <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" aria-hidden="true" />
                 </div>
                 <p className="text-xs text-slate-400 mt-1">Structured 25-minute cycles with auto-break pacing.</p>
-              </button>
+              </SpaLink>
 
-              <button 
-                onClick={() => onNavigate('/study-planner')}
-                className="p-4 rounded-xl bg-slate-950 border border-slate-800 hover:border-indigo-500 text-left transition-all group"
+              <SpaLink
+                to="/study-planner"
+                onNavigate={onNavigate}
+                className="p-4 rounded-xl bg-slate-950 border border-slate-800 hover:border-indigo-500 text-left transition-all group block"
               >
                 <div className="text-sm font-bold text-white group-hover:text-indigo-400 flex items-center justify-between">
-                  <span>Study Planner Tool</span>
-                  <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+                  <span>Free Study Planner</span>
+                  <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" aria-hidden="true" />
                 </div>
                 <p className="text-xs text-slate-400 mt-1">Calculate course credit hours and weekly budgets.</p>
-              </button>
+              </SpaLink>
 
-              <button 
-                onClick={() => onNavigate('/focus-timer')}
-                className="p-4 rounded-xl bg-slate-950 border border-slate-800 hover:border-indigo-500 text-left transition-all group"
+              <SpaLink
+                to="/focus-timer"
+                onNavigate={onNavigate}
+                className="p-4 rounded-xl bg-slate-950 border border-slate-800 hover:border-indigo-500 text-left transition-all group block"
               >
                 <div className="text-sm font-bold text-white group-hover:text-indigo-400 flex items-center justify-between">
-                  <span>Deep Work Shield</span>
-                  <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+                  <span>Focus Timer for Studying</span>
+                  <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" aria-hidden="true" />
                 </div>
                 <p className="text-xs text-slate-400 mt-1">Eliminate digital interruptions and context switching.</p>
-              </button>
+              </SpaLink>
             </div>
           </section>
 

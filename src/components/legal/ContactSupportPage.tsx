@@ -12,6 +12,8 @@ import {
 } from 'lucide-react';
 import { TimerLogoSvg } from '../common/BrandLogo';
 import { SEOHead } from '../seo/SEOHead';
+import { SpaLink } from '../common/SpaLink';
+import { PublicFooter } from '../public/PublicFooter';
 import { sanitizeInput, isValidEmail } from '../../utils/securityUtils';
 
 interface ContactSupportPageProps {
@@ -83,7 +85,7 @@ export const ContactSupportPage: React.FC<ContactSupportPageProps> = ({ onBack, 
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans selection:bg-indigo-500 selection:text-white pb-20">
+    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans selection:bg-indigo-500 selection:text-white flex flex-col">
       <SEOHead
         title="Contact & Support — Focus Flow"
         description="Need help with your study workspace? Contact our dedicated student support team or submit feedback."
@@ -98,25 +100,31 @@ export const ContactSupportPage: React.FC<ContactSupportPageProps> = ({ onBack, 
       <header className="sticky top-0 z-40 backdrop-blur-xl bg-slate-950/80 border-b border-slate-800/80">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <button
-              onClick={handleBack}
+            <SpaLink
+              to="/"
+              onNavigate={onBack ? () => handleBack() : onNavigate}
               className="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-800 transition-colors flex items-center gap-1.5 text-xs font-semibold"
               aria-label="Back to home"
             >
-              <ArrowLeft className="w-4 h-4" />
+              <ArrowLeft className="w-4 h-4" aria-hidden="true" />
               <span className="hidden sm:inline">Back to Home</span>
-            </button>
-            <div className="flex items-center gap-2 pl-2 border-l border-slate-800">
+            </SpaLink>
+            <SpaLink
+              to="/"
+              onNavigate={onNavigate}
+              className="flex items-center gap-2 pl-2 border-l border-slate-800"
+            >
               <div className="w-7 h-7 rounded-lg bg-indigo-600 flex items-center justify-center text-white">
                 <TimerLogoSvg className="w-4 h-4" />
               </div>
               <span className="font-bold text-white text-sm hidden sm:inline">Focus Flow</span>
-            </div>
+            </SpaLink>
           </div>
 
           <div className="flex items-center gap-3">
             {onGetStarted && (
               <button
+                type="button"
                 onClick={onGetStarted}
                 className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-md shadow-indigo-600/30 transition-all"
               >
@@ -128,10 +136,10 @@ export const ContactSupportPage: React.FC<ContactSupportPageProps> = ({ onBack, 
       </header>
 
       {/* Hero Header */}
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-8">
+      <div className="max-w-4xl mx-auto w-full px-4 sm:px-6 lg:px-8 pt-12 pb-8">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-950/80 border border-indigo-800/50 text-xs font-semibold text-indigo-300 mb-4">
-          <LifeBuoy className="w-3.5 h-3.5 text-indigo-400" />
-          <span>Student Support & Assistance</span>
+          <LifeBuoy className="w-3.5 h-3.5 text-indigo-400" aria-hidden="true" />
+          <span>Student Support &amp; Assistance</span>
         </div>
         <h1 className="text-3xl sm:text-4xl font-black text-white tracking-tight mb-3">
           Contact & Help Center
@@ -174,30 +182,31 @@ export const ContactSupportPage: React.FC<ContactSupportPageProps> = ({ onBack, 
             </div>
 
             <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-3 text-xs">
-              <h3 className="font-bold text-white flex items-center gap-2">
-                <HelpCircle className="w-4 h-4 text-indigo-400" />
+              <h2 className="text-sm font-bold text-white flex items-center gap-2">
+                <HelpCircle className="w-4 h-4 text-indigo-400" aria-hidden="true" />
                 <span>Quick Shortcuts</span>
-              </h3>
+              </h2>
               <ul className="space-y-2 text-slate-300">
-                {onNavigate && (
-                  <>
-                    <li>
-                      <button onClick={() => onNavigate('/privacy')} className="hover:text-indigo-300 transition-colors text-left">
-                        → Privacy Policy
-                      </button>
-                    </li>
-                    <li>
-                      <button onClick={() => onNavigate('/terms')} className="hover:text-indigo-300 transition-colors text-left">
-                        → Terms of Service
-                      </button>
-                    </li>
-                    <li>
-                      <button onClick={() => onNavigate('/pomodoro-timer')} className="hover:text-indigo-300 transition-colors text-left">
-                        → Free Online Pomodoro Timer
-                      </button>
-                    </li>
-                  </>
-                )}
+                <li>
+                  <SpaLink to="/privacy" onNavigate={onNavigate} className="hover:text-indigo-300 transition-colors inline-block">
+                    → Privacy Policy
+                  </SpaLink>
+                </li>
+                <li>
+                  <SpaLink to="/terms" onNavigate={onNavigate} className="hover:text-indigo-300 transition-colors inline-block">
+                    → Terms of Service
+                  </SpaLink>
+                </li>
+                <li>
+                  <SpaLink to="/pomodoro-timer" onNavigate={onNavigate} className="hover:text-indigo-300 transition-colors inline-block">
+                    → Free Online Pomodoro Timer
+                  </SpaLink>
+                </li>
+                <li>
+                  <SpaLink to="/study-planner" onNavigate={onNavigate} className="hover:text-indigo-300 transition-colors inline-block">
+                    → Free Study Planner
+                  </SpaLink>
+                </li>
               </ul>
             </div>
           </div>
@@ -208,9 +217,9 @@ export const ContactSupportPage: React.FC<ContactSupportPageProps> = ({ onBack, 
               {submitted ? (
                 <div className="p-8 text-center space-y-4">
                   <div className="w-12 h-12 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto">
-                    <CheckCircle2 className="w-6 h-6" />
+                    <CheckCircle2 className="w-6 h-6" aria-hidden="true" />
                   </div>
-                  <h3 className="text-lg font-bold text-white">Message Received!</h3>
+                  <h2 className="text-lg font-bold text-white">Message Received!</h2>
                   <p className="text-xs text-slate-300 max-w-sm mx-auto leading-relaxed">
                     Thank you for reaching out, <strong className="text-white">{name}</strong>. Our student support desk has received your ticket and will reply to <strong className="text-white">{email}</strong> shortly.
                   </p>
@@ -319,6 +328,14 @@ export const ContactSupportPage: React.FC<ContactSupportPageProps> = ({ onBack, 
           </div>
         </div>
       </main>
+
+      <div className="mt-16">
+        <PublicFooter
+          onNavigate={onNavigate || (() => {})}
+          onGetStarted={onGetStarted || (() => onNavigate?.('/signup'))}
+          onLogin={() => onNavigate?.('/login')}
+        />
+      </div>
     </div>
   );
 };

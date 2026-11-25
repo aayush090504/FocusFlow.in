@@ -10,6 +10,8 @@ import {
 } from 'lucide-react';
 import { TimerLogoSvg } from '../common/BrandLogo';
 import { SEOHead } from '../seo/SEOHead';
+import { SpaLink } from '../common/SpaLink';
+import { PublicFooter } from '../public/PublicFooter';
 
 interface TermsOfServicePageProps {
   onBack?: () => void;
@@ -42,7 +44,7 @@ export const TermsOfServicePage: React.FC<TermsOfServicePageProps> = ({ onBack, 
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans selection:bg-indigo-500 selection:text-white pb-20">
+    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans selection:bg-indigo-500 selection:text-white flex flex-col">
       <SEOHead
         title="Terms of Service — Focus Flow"
         description="Focus Flow terms of service, user agreement, acceptable use guidelines, and student academic terms."
@@ -57,25 +59,31 @@ export const TermsOfServicePage: React.FC<TermsOfServicePageProps> = ({ onBack, 
       <header className="sticky top-0 z-40 backdrop-blur-xl bg-slate-950/80 border-b border-slate-800/80">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <button
-              onClick={handleBack}
+            <SpaLink
+              to="/"
+              onNavigate={onBack ? () => handleBack() : onNavigate}
               className="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-800 transition-colors flex items-center gap-1.5 text-xs font-semibold"
               aria-label="Back to home"
             >
-              <ArrowLeft className="w-4 h-4" />
+              <ArrowLeft className="w-4 h-4" aria-hidden="true" />
               <span className="hidden sm:inline">Back to Home</span>
-            </button>
-            <div className="flex items-center gap-2 pl-2 border-l border-slate-800">
+            </SpaLink>
+            <SpaLink
+              to="/"
+              onNavigate={onNavigate}
+              className="flex items-center gap-2 pl-2 border-l border-slate-800"
+            >
               <div className="w-7 h-7 rounded-lg bg-indigo-600 flex items-center justify-center text-white">
                 <TimerLogoSvg className="w-4 h-4" />
               </div>
               <span className="font-bold text-white text-sm hidden sm:inline">Focus Flow</span>
-            </div>
+            </SpaLink>
           </div>
 
           <div className="flex items-center gap-3">
             {onGetStarted && (
               <button
+                type="button"
                 onClick={onGetStarted}
                 className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-md shadow-indigo-600/30 transition-all"
               >
@@ -87,10 +95,10 @@ export const TermsOfServicePage: React.FC<TermsOfServicePageProps> = ({ onBack, 
       </header>
 
       {/* Hero Header */}
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-8">
+      <div className="max-w-4xl mx-auto w-full px-4 sm:px-6 lg:px-8 pt-12 pb-8">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-950/80 border border-indigo-800/50 text-xs font-semibold text-indigo-300 mb-4">
-          <Scale className="w-3.5 h-3.5 text-indigo-400" />
-          <span>Student User Agreement & Terms</span>
+          <Scale className="w-3.5 h-3.5 text-indigo-400" aria-hidden="true" />
+          <span>Student User Agreement &amp; Terms</span>
         </div>
         <h1 className="text-3xl sm:text-4xl font-black text-white tracking-tight mb-3">
           Terms of Service
@@ -170,19 +178,26 @@ export const TermsOfServicePage: React.FC<TermsOfServicePageProps> = ({ onBack, 
                   <div className="text-sm font-mono font-bold text-white">legal@focusflow.in</div>
                 </div>
               </div>
-              {onNavigate && (
-                <button
-                  onClick={() => onNavigate('/contact')}
-                  className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 transition-colors"
-                >
-                  Contact Support
-                </button>
-              )}
+              <SpaLink
+                to="/contact"
+                onNavigate={onNavigate}
+                className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 transition-colors"
+              >
+                Contact Support
+              </SpaLink>
             </div>
           </section>
 
         </div>
       </main>
+
+      <div className="mt-16">
+        <PublicFooter
+          onNavigate={onNavigate || (() => {})}
+          onGetStarted={onGetStarted || (() => onNavigate?.('/signup'))}
+          onLogin={() => onNavigate?.('/login')}
+        />
+      </div>
     </div>
   );
 };

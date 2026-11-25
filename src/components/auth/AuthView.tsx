@@ -20,6 +20,7 @@ import {
 import { TimerLogoSvg } from '../common/BrandLogo';
 import { useAuth } from '../../context/AuthContext';
 import { SEOHead } from '../seo/SEOHead';
+import { SpaLink } from '../common/SpaLink';
 
 interface AuthViewProps {
   initialMode?: 'login' | 'signup' | 'forgot';
@@ -124,6 +125,7 @@ export const AuthView: React.FC<AuthViewProps> = ({
             ? "https://focusflow.in/signup"
             : "https://focusflow.in/login"
         }
+        robots="noindex, nofollow"
       />
       {/* Ambient background glow accents */}
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-indigo-600/15 rounded-full blur-3xl pointer-events-none" />
@@ -133,13 +135,14 @@ export const AuthView: React.FC<AuthViewProps> = ({
       <div className="sm:mx-auto sm:w-full sm:max-w-md z-10 px-4">
         {onBackToLanding && (
           <div className="mb-6 flex justify-start">
-            <button
-              onClick={onBackToLanding}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 transition-all"
+            <SpaLink
+              to="/"
+              onNavigate={() => onBackToLanding()}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-300 hover:text-white bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 transition-all"
             >
-              <ArrowLeft className="w-3.5 h-3.5" />
+              <ArrowLeft className="w-3.5 h-3.5" aria-hidden="true" />
               <span>Back to Home</span>
-            </button>
+            </SpaLink>
           </div>
         )}
 
@@ -200,8 +203,8 @@ export const AuthView: React.FC<AuthViewProps> = ({
           ) : (
             <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-700">
               <div className="flex items-center gap-2">
-                <KeyRound className="w-5 h-5 text-indigo-400" />
-                <h3 className="text-base font-semibold text-white">Reset Password</h3>
+                <KeyRound className="w-5 h-5 text-indigo-400" aria-hidden="true" />
+                <h2 className="text-base font-semibold text-white">Reset Password</h2>
               </div>
               <button
                 type="button"
@@ -283,40 +286,42 @@ export const AuthView: React.FC<AuthViewProps> = ({
           <form onSubmit={handleSubmit} className="space-y-4">
             {mode === 'signup' && (
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                <label htmlFor="auth-display-name" className="block text-xs font-semibold text-slate-300 mb-1.5">
                   Full Name / Nickname
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <User className="h-4 w-4 text-slate-400" />
+                    <User className="h-4 w-4 text-slate-400" aria-hidden="true" />
                   </div>
                   <input
+                    id="auth-display-name"
                     type="text"
                     required
                     value={displayName}
                     onChange={(e) => setDisplayName(e.target.value)}
                     placeholder="Alex Rivera"
-                    className="block w-full pl-9 pr-3 py-2.5 bg-slate-900/90 border border-slate-700 rounded-xl text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                    className="block w-full pl-9 pr-3 py-2.5 bg-slate-900/90 border border-slate-700 rounded-xl text-sm text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
                   />
                 </div>
               </div>
             )}
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+              <label htmlFor="auth-email" className="block text-xs font-semibold text-slate-300 mb-1.5">
                 Email Address
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Mail className="h-4 w-4 text-slate-400" />
+                  <Mail className="h-4 w-4 text-slate-400" aria-hidden="true" />
                 </div>
                 <input
+                  id="auth-email"
                   type="email"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="student@university.edu"
-                  className="block w-full pl-9 pr-3 py-2.5 bg-slate-900/90 border border-slate-700 rounded-xl text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                  className="block w-full pl-9 pr-3 py-2.5 bg-slate-900/90 border border-slate-700 rounded-xl text-sm text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
                 />
               </div>
             </div>
@@ -324,7 +329,7 @@ export const AuthView: React.FC<AuthViewProps> = ({
             {mode !== 'forgot' && (
               <div>
                 <div className="flex items-center justify-between mb-1.5">
-                  <label className="block text-xs font-semibold text-slate-300">
+                  <label htmlFor="auth-password" className="block text-xs font-semibold text-slate-300">
                     Password
                   </label>
                   {mode === 'login' && (
@@ -343,22 +348,24 @@ export const AuthView: React.FC<AuthViewProps> = ({
                 </div>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Lock className="h-4 w-4 text-slate-400" />
+                    <Lock className="h-4 w-4 text-slate-400" aria-hidden="true" />
                   </div>
                   <input
+                    id="auth-password"
                     type={showPassword ? 'text' : 'password'}
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="block w-full pl-9 pr-10 py-2.5 bg-slate-900/90 border border-slate-700 rounded-xl text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                    className="block w-full pl-9 pr-10 py-2.5 bg-slate-900/90 border border-slate-700 rounded-xl text-sm text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
                     className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-200"
                   >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    {showPassword ? <EyeOff className="w-4 h-4" aria-hidden="true" /> : <Eye className="w-4 h-4" aria-hidden="true" />}
                   </button>
                 </div>
               </div>

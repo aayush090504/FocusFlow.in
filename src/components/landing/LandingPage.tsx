@@ -34,6 +34,7 @@ import { ThemeMode } from '../../types';
 import { THEMES } from '../../context/ThemeContext';
 import { TimerLogoSvg } from '../common/BrandLogo';
 import { SEOHead } from '../seo/SEOHead';
+import { SpaLink } from '../common/SpaLink';
 
 interface LandingPageProps {
   onGetStarted: () => void;
@@ -151,8 +152,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLogin,
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 selection:bg-indigo-500 selection:text-white antialiased font-sans">
       <SEOHead
-        title="Focus Flow — Study Timer, Pomodoro Tracker & Task Planner"
-        description="Focus Flow is the ultimate study timer, Pomodoro tracker, task planner, and focus streak app designed for students to master subjects, organize coursework, and build unstoppable focus."
+        title="Focus Flow — Free Study Planner, Pomodoro & Study Timer"
+        description="Free student productivity app and study workspace. Use our free Pomodoro timer, online study timer, and free study planner to organize tasks and build focus streaks."
         canonicalUrl="https://focusflow.in/"
         schemaJson={jsonLd}
       />
@@ -163,99 +164,132 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLogin,
       {/* Navigation Header */}
       <header className="sticky top-0 z-50 backdrop-blur-xl bg-slate-950/80 border-b border-slate-800/80">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+          <SpaLink to="/" onNavigate={onNavigate} className="flex items-center gap-3 group" aria-label="Focus Flow Home">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center shadow-lg shadow-indigo-500/25 border border-indigo-400/20">
               <TimerLogoSvg className="w-5 h-5 text-white" />
             </div>
             <div className="flex items-center gap-2">
               <span className="text-xl font-extrabold tracking-tight text-white">Focus Flow</span>
-              <span className="hidden sm:inline-block text-[10px] font-bold tracking-wider uppercase px-2 py-0.5 rounded-full bg-indigo-950 text-indigo-400 border border-indigo-800/50">
+              <span className="hidden sm:inline-block text-[10px] font-bold tracking-wider uppercase px-2 py-0.5 rounded-full bg-indigo-950 text-indigo-300 border border-indigo-800/50">
                 focusflow.in
               </span>
             </div>
-          </div>
+          </SpaLink>
 
-          <nav className="hidden lg:flex items-center gap-6 text-xs font-semibold text-slate-400">
+          <nav className="hidden lg:flex items-center gap-5 text-xs font-semibold text-slate-300" aria-label="Main Navigation">
             <a href="#features" className="hover:text-white transition-colors">Features</a>
             <a href="#tools" className="hover:text-white transition-colors">Free Tools</a>
             <a href="#workflow" className="hover:text-white transition-colors">How It Works</a>
             <a href="#themes" className="hover:text-white transition-colors">Themes</a>
             <a href="#faq" className="hover:text-white transition-colors">FAQ</a>
-            {onNavigate && (
-              <div className="flex items-center gap-3 pl-3 border-l border-slate-800">
-                <button 
-                  onClick={() => onNavigate('/study-timer')}
-                  className="hover:text-indigo-400 transition-colors flex items-center gap-1"
-                >
-                  <Clock className="w-3 h-3" />
-                  <span>Timer</span>
-                </button>
-                <button 
-                  onClick={() => onNavigate('/pomodoro-timer')}
-                  className="hover:text-rose-400 transition-colors flex items-center gap-1"
-                >
-                  <Flame className="w-3 h-3" />
-                  <span>Pomodoro</span>
-                </button>
-                <button 
-                  onClick={() => onNavigate('/study-planner')}
-                  className="hover:text-emerald-400 transition-colors flex items-center gap-1"
-                >
-                  <Calendar className="w-3 h-3" />
-                  <span>Planner</span>
-                </button>
-              </div>
-            )}
+            <div className="flex items-center gap-3 pl-3 border-l border-slate-800">
+              <SpaLink
+                to="/study-timer"
+                onNavigate={onNavigate}
+                className="hover:text-indigo-300 transition-colors flex items-center gap-1"
+              >
+                <Clock className="w-3 h-3" aria-hidden="true" />
+                <span>Study Timer</span>
+              </SpaLink>
+              <SpaLink
+                to="/pomodoro-timer"
+                onNavigate={onNavigate}
+                className="hover:text-rose-300 transition-colors flex items-center gap-1"
+              >
+                <Flame className="w-3 h-3" aria-hidden="true" />
+                <span>Pomodoro</span>
+              </SpaLink>
+              <SpaLink
+                to="/study-planner"
+                onNavigate={onNavigate}
+                className="hover:text-emerald-300 transition-colors flex items-center gap-1"
+              >
+                <Calendar className="w-3 h-3" aria-hidden="true" />
+                <span>Study Planner</span>
+              </SpaLink>
+              <SpaLink
+                to="/focus-timer"
+                onNavigate={onNavigate}
+                className="hover:text-violet-300 transition-colors flex items-center gap-1"
+              >
+                <Shield className="w-3 h-3" aria-hidden="true" />
+                <span>Focus Timer</span>
+              </SpaLink>
+            </div>
           </nav>
 
           <div className="flex items-center gap-3">
             <button
+              type="button"
               id="landing-login-btn"
               onClick={onLogin}
-              className="px-4 py-2 text-xs sm:text-sm font-semibold text-slate-300 hover:text-white hover:bg-slate-800/60 rounded-xl transition-all"
+              className="px-4 py-2 text-xs sm:text-sm font-semibold text-slate-200 hover:text-white hover:bg-slate-800/60 rounded-xl transition-all"
             >
               Log In
             </button>
             <button
+              type="button"
               id="landing-get-started-nav-btn"
               onClick={onGetStarted}
               className="px-4 py-2 text-xs sm:text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 rounded-xl shadow-md shadow-indigo-600/30 transition-all flex items-center gap-1.5"
             >
               <span>Get Started</span>
-              <ArrowRight className="w-4 h-4" />
+              <ArrowRight className="w-4 h-4" aria-hidden="true" />
             </button>
           </div>
         </div>
+
+        {/* Mobile Quick Tool Links */}
+        <nav
+          className="lg:hidden border-t border-slate-800/70 px-4 py-2 flex items-center gap-2 overflow-x-auto no-scrollbar text-xs font-semibold text-slate-300"
+          aria-label="Mobile Tool Navigation"
+        >
+          <SpaLink to="/study-timer" onNavigate={onNavigate} className="shrink-0 py-1 px-2.5 rounded-lg bg-slate-900 border border-slate-800 hover:text-white">
+            Online Study Timer
+          </SpaLink>
+          <SpaLink to="/pomodoro-timer" onNavigate={onNavigate} className="shrink-0 py-1 px-2.5 rounded-lg bg-slate-900 border border-slate-800 hover:text-white">
+            Free Pomodoro Timer
+          </SpaLink>
+          <SpaLink to="/study-planner" onNavigate={onNavigate} className="shrink-0 py-1 px-2.5 rounded-lg bg-slate-900 border border-slate-800 hover:text-white">
+            Free Study Planner
+          </SpaLink>
+          <SpaLink to="/focus-timer" onNavigate={onNavigate} className="shrink-0 py-1 px-2.5 rounded-lg bg-slate-900 border border-slate-800 hover:text-white">
+            Deep Focus Timer
+          </SpaLink>
+        </nav>
       </header>
 
       {/* Hero Section */}
+      <main>
       <section className="relative pt-16 pb-20 md:pt-24 md:pb-32 overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-3xl mx-auto mb-12 md:mb-16">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900/90 border border-slate-700/80 text-xs font-semibold text-indigo-300 mb-6 shadow-sm">
-              <Flame className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
-              <span>The Intelligent Focus & Study OS for Ambitious Students</span>
+              <Flame className="w-3.5 h-3.5 text-amber-400 animate-pulse" aria-hidden="true" />
+              <span>Free Student Productivity App &amp; Personalized Study Workspace</span>
             </div>
 
             <h1 className="text-4xl sm:text-5xl md:text-6xl font-black text-white tracking-tight leading-[1.1] mb-6">
               Study smarter, stay focused, and <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-violet-300 to-indigo-300">master every subject</span>.
             </h1>
 
-            <p className="text-lg sm:text-xl text-slate-400 leading-relaxed max-w-2xl mx-auto mb-8 font-normal">
-              Focus Flow replaces scattered notes, stopwatch timers, and lost deadlines with a cohesive workspace designed for academic peak performance.
+            <p className="text-lg sm:text-xl text-slate-300 leading-relaxed max-w-2xl mx-auto mb-8 font-normal">
+              Focus Flow is a free student planner and study workspace combining an online study timer, Pomodoro tracker, task planner, and focus streak engine for peak academic performance.
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 max-w-md mx-auto">
               <button
+                type="button"
                 id="hero-cta-btn"
                 onClick={onGetStarted}
                 className="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white font-bold text-base shadow-xl shadow-indigo-600/30 hover:shadow-indigo-600/40 transition-all flex items-center justify-center gap-2 group"
               >
                 <span>Launch Your Workspace</span>
-                <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+                <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" aria-hidden="true" />
               </button>
 
               <button
+                type="button"
                 id="hero-preview-btn"
                 onClick={onLogin}
                 className="w-full sm:w-auto px-6 py-3.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-200 font-semibold text-base border border-slate-800 transition-all flex items-center justify-center gap-2"
@@ -264,18 +298,18 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLogin,
               </button>
             </div>
 
-            <div className="mt-8 flex flex-wrap items-center justify-center gap-6 text-xs text-slate-400">
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-6 text-xs text-slate-300">
               <div className="flex items-center gap-1.5">
-                <Check className="w-4 h-4 text-emerald-400" />
-                <span>Free & Cloud-Synced</span>
+                <Check className="w-4 h-4 text-emerald-400" aria-hidden="true" />
+                <span>Free Study Planner &amp; Cloud Sync</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <Check className="w-4 h-4 text-emerald-400" />
+                <Check className="w-4 h-4 text-emerald-400" aria-hidden="true" />
                 <span>Zero Ads or Distractions</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <Check className="w-4 h-4 text-emerald-400" />
-                <span>7 Personalized Themes</span>
+                <Check className="w-4 h-4 text-emerald-400" aria-hidden="true" />
+                <span>7 Personalized Study Themes</span>
               </div>
             </div>
           </div>
@@ -360,14 +394,16 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLogin,
                         <span>{isDemoTimerRunning ? 'Pause' : 'Start Focus'}</span>
                       </button>
                       <button
+                        type="button"
                         onClick={() => {
                           setIsDemoTimerRunning(false);
                           setDemoTimerSeconds(1500);
                         }}
                         className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors"
                         title="Reset Demo Timer"
+                        aria-label="Reset demo timer"
                       >
-                        <RotateCcw className="w-3.5 h-3.5" />
+                        <RotateCcw className="w-3.5 h-3.5" aria-hidden="true" />
                       </button>
                     </div>
                   </div>
@@ -376,7 +412,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLogin,
                   <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4 flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
-                        <Flame className="w-5 h-5" />
+                        <Flame className="w-5 h-5" aria-hidden="true" />
                       </div>
                       <div>
                         <div className="text-sm font-bold text-white">7-Day Study Streak</div>
@@ -395,18 +431,20 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLogin,
                   <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-5">
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center gap-2">
-                        <CheckSquare className="w-4 h-4 text-indigo-400" />
-                        <h3 className="text-sm font-bold text-white">Today's Priority Queue</h3>
+                        <CheckSquare className="w-4 h-4 text-indigo-400" aria-hidden="true" />
+                        <div className="text-sm font-bold text-white">Today&apos;s Priority Queue</div>
                       </div>
                       <span className="text-[11px] text-slate-400">Interactive Preview</span>
                     </div>
 
                     <div className="space-y-2.5">
                       {demoTasks.map(task => (
-                        <div 
+                        <button
+                          type="button"
                           key={task.id}
                           onClick={() => toggleDemoTask(task.id)}
-                          className={`p-3 rounded-lg border flex items-center gap-3 cursor-pointer transition-all ${
+                          aria-pressed={task.done}
+                          className={`w-full text-left p-3 rounded-lg border flex items-center gap-3 cursor-pointer transition-all ${
                             task.done 
                               ? 'bg-slate-900/40 border-slate-800/60 opacity-60' 
                               : 'bg-slate-900 border-slate-800 hover:border-slate-700'
@@ -428,7 +466,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLogin,
                           }`}>
                             {task.priority}
                           </span>
-                        </div>
+                        </button>
                       ))}
                     </div>
                   </div>
@@ -471,12 +509,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLogin,
       <section id="features" className="py-20 bg-slate-900/50 border-t border-slate-800/80">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-2xl mx-auto mb-16">
-            <span className="text-xs font-bold uppercase tracking-wider text-indigo-400">Core Capabilities</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-indigo-400">Productivity Tools for Students</span>
             <h2 className="text-3xl sm:text-4xl font-black text-white tracking-tight mt-2 mb-4">
-              Engineered for Deep Academic Work
+              A Complete Study Workspace for Deep Academic Work
             </h2>
-            <p className="text-base text-slate-400">
-              Everything you need to plan assignments, eliminate cognitive friction, and track your true academic trajectory.
+            <p className="text-base text-slate-300">
+              Everything you need in one free student planner and focus timer for studying: organize assignments, eliminate cognitive friction, and track your weekly study hours.
             </p>
           </div>
 
@@ -614,12 +652,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLogin,
       <section id="tools" className="py-20 border-t border-slate-800/80 bg-slate-950/60 relative">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-3xl mx-auto mb-14">
-            <span className="text-xs font-bold uppercase tracking-wider text-indigo-400">Free Academic Web Utilities</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-indigo-400">Free Productivity Tools for Students</span>
             <h2 className="text-3xl sm:text-4xl font-black text-white tracking-tight mt-2 mb-4">
-              Instant Online Tools for High-Performance Students
+              Free Online Study Timer, Pomodoro &amp; Student Planner
             </h2>
-            <p className="text-base text-slate-400">
-              Access our suite of standalone web utilities with zero signup required. Use them directly in your browser or connect your account for persistent cloud tracking.
+            <p className="text-base text-slate-300">
+              Launch our free browser-based study tools with zero signup required, or connect your free Focus Flow account to sync sessions, tasks, and focus streaks across devices.
             </p>
           </div>
 
@@ -628,120 +666,84 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLogin,
             <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 flex flex-col justify-between hover:border-indigo-500/60 transition-all group">
               <div>
                 <div className="w-10 h-10 rounded-xl bg-indigo-600/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 mb-4 group-hover:bg-indigo-600 group-hover:text-white transition-all">
-                  <Clock className="w-5 h-5" />
+                  <Clock className="w-5 h-5" aria-hidden="true" />
                 </div>
                 <h3 className="text-base font-bold text-white mb-2">Online Study Timer</h3>
-                <p className="text-xs text-slate-400 leading-relaxed mb-4">
-                  Customizable study/rest blocks with calming soundscapes (rain, white noise, alpha waves) and session notes.
+                <p className="text-xs text-slate-300 leading-relaxed mb-4">
+                  Customizable study and rest blocks with calming soundscapes (rain, white noise, alpha waves) and session notes.
                 </p>
               </div>
-              {onNavigate ? (
-                <button
-                  onClick={() => onNavigate('/study-timer')}
-                  className="w-full py-2.5 rounded-xl bg-slate-950 border border-slate-800 hover:border-indigo-500 text-slate-200 text-xs font-bold transition-all flex items-center justify-center gap-1.5 group-hover:text-indigo-400"
-                >
-                  <span>Launch Study Timer</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </button>
-              ) : (
-                <a
-                  href="/study-timer"
-                  className="w-full py-2.5 rounded-xl bg-slate-950 border border-slate-800 hover:border-indigo-500 text-slate-200 text-xs font-bold transition-all flex items-center justify-center gap-1.5 group-hover:text-indigo-400"
-                >
-                  <span>Launch Study Timer</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </a>
-              )}
+              <SpaLink
+                to="/study-timer"
+                onNavigate={onNavigate}
+                className="w-full py-2.5 rounded-xl bg-slate-950 border border-slate-800 hover:border-indigo-500 text-slate-200 text-xs font-bold transition-all flex items-center justify-center gap-1.5 group-hover:text-indigo-300"
+              >
+                <span>Open Online Study Timer</span>
+                <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
+              </SpaLink>
             </div>
 
             {/* Tool 2: Pomodoro Timer */}
             <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 flex flex-col justify-between hover:border-rose-500/60 transition-all group">
               <div>
                 <div className="w-10 h-10 rounded-xl bg-rose-600/10 border border-rose-500/20 flex items-center justify-center text-rose-400 mb-4 group-hover:bg-rose-600 group-hover:text-white transition-all">
-                  <Flame className="w-5 h-5" />
+                  <Flame className="w-5 h-5" aria-hidden="true" />
                 </div>
-                <h3 className="text-base font-bold text-white mb-2">Scientific Pomodoro (25/5)</h3>
-                <p className="text-xs text-slate-400 leading-relaxed mb-4">
-                  Classic 25-minute sprints with 5-minute short breaks, long breaks, and completed cycle counters.
+                <h3 className="text-base font-bold text-white mb-2">Free Pomodoro Timer (25/5)</h3>
+                <p className="text-xs text-slate-300 leading-relaxed mb-4">
+                  Classic 25-minute focus sprints with 5-minute short breaks, 15-minute long breaks, and completed cycle counters.
                 </p>
               </div>
-              {onNavigate ? (
-                <button
-                  onClick={() => onNavigate('/pomodoro-timer')}
-                  className="w-full py-2.5 rounded-xl bg-slate-950 border border-slate-800 hover:border-rose-500 text-slate-200 text-xs font-bold transition-all flex items-center justify-center gap-1.5 group-hover:text-rose-400"
-                >
-                  <span>Launch Pomodoro</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </button>
-              ) : (
-                <a
-                  href="/pomodoro-timer"
-                  className="w-full py-2.5 rounded-xl bg-slate-950 border border-slate-800 hover:border-rose-500 text-slate-200 text-xs font-bold transition-all flex items-center justify-center gap-1.5 group-hover:text-rose-400"
-                >
-                  <span>Launch Pomodoro</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </a>
-              )}
+              <SpaLink
+                to="/pomodoro-timer"
+                onNavigate={onNavigate}
+                className="w-full py-2.5 rounded-xl bg-slate-950 border border-slate-800 hover:border-rose-500 text-slate-200 text-xs font-bold transition-all flex items-center justify-center gap-1.5 group-hover:text-rose-300"
+              >
+                <span>Open Free Pomodoro Timer</span>
+                <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
+              </SpaLink>
             </div>
 
             {/* Tool 3: Study Planner */}
             <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 flex flex-col justify-between hover:border-emerald-500/60 transition-all group">
               <div>
                 <div className="w-10 h-10 rounded-xl bg-emerald-600/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 mb-4 group-hover:bg-emerald-600 group-hover:text-white transition-all">
-                  <Calendar className="w-5 h-5" />
+                  <Calendar className="w-5 h-5" aria-hidden="true" />
                 </div>
-                <h3 className="text-base font-bold text-white mb-2">Academic Study Planner</h3>
-                <p className="text-xs text-slate-400 leading-relaxed mb-4">
-                  Calculate weekly course credit hours, balance daily study budgets, and export weekly schedules.
+                <h3 className="text-base font-bold text-white mb-2">Free Study Planner</h3>
+                <p className="text-xs text-slate-300 leading-relaxed mb-4">
+                  Free student planner to calculate weekly course credit hours, balance daily study budgets, and export schedules.
                 </p>
               </div>
-              {onNavigate ? (
-                <button
-                  onClick={() => onNavigate('/study-planner')}
-                  className="w-full py-2.5 rounded-xl bg-slate-950 border border-slate-800 hover:border-emerald-500 text-slate-200 text-xs font-bold transition-all flex items-center justify-center gap-1.5 group-hover:text-emerald-400"
-                >
-                  <span>Launch Planner</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </button>
-              ) : (
-                <a
-                  href="/study-planner"
-                  className="w-full py-2.5 rounded-xl bg-slate-950 border border-slate-800 hover:border-emerald-500 text-slate-200 text-xs font-bold transition-all flex items-center justify-center gap-1.5 group-hover:text-emerald-400"
-                >
-                  <span>Launch Planner</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </a>
-              )}
+              <SpaLink
+                to="/study-planner"
+                onNavigate={onNavigate}
+                className="w-full py-2.5 rounded-xl bg-slate-950 border border-slate-800 hover:border-emerald-500 text-slate-200 text-xs font-bold transition-all flex items-center justify-center gap-1.5 group-hover:text-emerald-300"
+              >
+                <span>Open Free Study Planner</span>
+                <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
+              </SpaLink>
             </div>
 
             {/* Tool 4: Deep Focus */}
             <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 flex flex-col justify-between hover:border-violet-500/60 transition-all group">
               <div>
                 <div className="w-10 h-10 rounded-xl bg-violet-600/10 border border-violet-500/20 flex items-center justify-center text-violet-400 mb-4 group-hover:bg-violet-600 group-hover:text-white transition-all">
-                  <Shield className="w-5 h-5" />
+                  <Shield className="w-5 h-5" aria-hidden="true" />
                 </div>
-                <h3 className="text-base font-bold text-white mb-2">Deep Focus Shield</h3>
-                <p className="text-xs text-slate-400 leading-relaxed mb-4">
-                  Pre-flight environmental checklists, distraction-shielded full-screen mode, and single-task anchors.
+                <h3 className="text-base font-bold text-white mb-2">Focus Timer for Studying</h3>
+                <p className="text-xs text-slate-300 leading-relaxed mb-4">
+                  Pre-flight environmental checklists, distraction-shielded full-screen mode, and single-task anchors for deep work.
                 </p>
               </div>
-              {onNavigate ? (
-                <button
-                  onClick={() => onNavigate('/focus-timer')}
-                  className="w-full py-2.5 rounded-xl bg-slate-950 border border-slate-800 hover:border-violet-500 text-slate-200 text-xs font-bold transition-all flex items-center justify-center gap-1.5 group-hover:text-violet-400"
-                >
-                  <span>Launch Deep Focus</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </button>
-              ) : (
-                <a
-                  href="/focus-timer"
-                  className="w-full py-2.5 rounded-xl bg-slate-950 border border-slate-800 hover:border-violet-500 text-slate-200 text-xs font-bold transition-all flex items-center justify-center gap-1.5 group-hover:text-violet-400"
-                >
-                  <span>Launch Deep Focus</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </a>
-              )}
+              <SpaLink
+                to="/focus-timer"
+                onNavigate={onNavigate}
+                className="w-full py-2.5 rounded-xl bg-slate-950 border border-slate-800 hover:border-violet-500 text-slate-200 text-xs font-bold transition-all flex items-center justify-center gap-1.5 group-hover:text-violet-300"
+              >
+                <span>Open Focus Timer</span>
+                <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
+              </SpaLink>
             </div>
           </div>
         </div>
@@ -977,16 +979,19 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLogin,
                   className="rounded-xl bg-slate-900/90 border border-slate-800 overflow-hidden transition-all"
                 >
                   <button
+                    type="button"
                     onClick={() => setOpenFaqIndex(isOpen ? null : idx)}
+                    aria-expanded={isOpen}
+                    aria-controls={`faq-answer-${idx}`}
                     className="w-full px-6 py-4 text-left flex items-center justify-between gap-4 hover:bg-slate-800/40 transition-colors"
                   >
                     <span className="text-sm sm:text-base font-bold text-white">{faq.question}</span>
-                    <span className="text-indigo-400 flex-shrink-0">
+                    <span className="text-indigo-400 flex-shrink-0" aria-hidden="true">
                       {isOpen ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
                     </span>
                   </button>
                   {isOpen && (
-                    <div className="px-6 pb-5 pt-1 text-sm text-slate-400 leading-relaxed border-t border-slate-800/60 bg-slate-950/40">
+                    <div id={`faq-answer-${idx}`} className="px-6 pb-5 pt-1 text-sm text-slate-300 leading-relaxed border-t border-slate-800/60 bg-slate-950/40">
                       {faq.answer}
                     </div>
                   )}
@@ -1035,6 +1040,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLogin,
           </p>
         </div>
       </section>
+      </main>
 
       {/* Footer */}
       <footer className="bg-slate-950 border-t border-slate-800/80 py-12 text-slate-400 text-xs">
@@ -1042,62 +1048,50 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLogin,
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-8 mb-12">
             {/* Brand column */}
             <div className="space-y-3 sm:col-span-2">
-              <div className="flex items-center gap-2">
+              <SpaLink to="/" onNavigate={onNavigate} className="inline-flex items-center gap-2 group">
                 <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white">
                   <TimerLogoSvg className="w-4 h-4" />
                 </div>
-                <span className="text-base font-bold text-white">Focus Flow</span>
-              </div>
+                <span className="text-base font-bold text-white group-hover:text-indigo-300 transition-colors">Focus Flow</span>
+              </SpaLink>
               <p className="text-slate-400 text-xs leading-relaxed max-w-sm">
-                The all-in-one study operating system designed for disciplined, high-performing students worldwide.
+                The all-in-one student productivity app and study workspace designed for disciplined, high-performing students worldwide.
               </p>
               <div className="text-[11px] font-mono text-indigo-400">
-                domain: focusflow.in
+                https://focusflow.in
               </div>
             </div>
 
             {/* Free Web Tools */}
             <div>
-              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-300 mb-3">Free Tools</h4>
+              <h2 className="text-xs font-bold uppercase tracking-wider text-slate-200 mb-3">Free Tools</h2>
               <ul className="space-y-2">
                 <li>
-                  <button 
-                    onClick={() => onNavigate ? onNavigate('/study-timer') : window.location.href = '/study-timer'} 
-                    className="hover:text-white transition-colors text-left"
-                  >
+                  <SpaLink to="/study-timer" onNavigate={onNavigate} className="hover:text-white transition-colors">
                     Online Study Timer
-                  </button>
+                  </SpaLink>
                 </li>
                 <li>
-                  <button 
-                    onClick={() => onNavigate ? onNavigate('/pomodoro-timer') : window.location.href = '/pomodoro-timer'} 
-                    className="hover:text-white transition-colors text-left"
-                  >
-                    Pomodoro Timer (25/5)
-                  </button>
+                  <SpaLink to="/pomodoro-timer" onNavigate={onNavigate} className="hover:text-white transition-colors">
+                    Free Pomodoro Timer (25/5)
+                  </SpaLink>
                 </li>
                 <li>
-                  <button 
-                    onClick={() => onNavigate ? onNavigate('/study-planner') : window.location.href = '/study-planner'} 
-                    className="hover:text-white transition-colors text-left"
-                  >
-                    Study Planner & Matrix
-                  </button>
+                  <SpaLink to="/study-planner" onNavigate={onNavigate} className="hover:text-white transition-colors">
+                    Free Study Planner
+                  </SpaLink>
                 </li>
                 <li>
-                  <button 
-                    onClick={() => onNavigate ? onNavigate('/focus-timer') : window.location.href = '/focus-timer'} 
-                    className="hover:text-white transition-colors text-left"
-                  >
-                    Deep Focus Shield
-                  </button>
+                  <SpaLink to="/focus-timer" onNavigate={onNavigate} className="hover:text-white transition-colors">
+                    Focus Timer for Studying
+                  </SpaLink>
                 </li>
               </ul>
             </div>
 
             {/* Product Links */}
             <div>
-              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-300 mb-3">Workspace</h4>
+              <h2 className="text-xs font-bold uppercase tracking-wider text-slate-200 mb-3">Study Workspace</h2>
               <ul className="space-y-2">
                 <li><a href="#features" className="hover:text-white transition-colors">Task Management</a></li>
                 <li><a href="#features" className="hover:text-white transition-colors">Subject Budgets</a></li>
@@ -1108,13 +1102,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLogin,
 
             {/* Account & Trust */}
             <div>
-              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-300 mb-3">Account</h4>
+              <h2 className="text-xs font-bold uppercase tracking-wider text-slate-200 mb-3">Account</h2>
               <ul className="space-y-2">
-                <li><button onClick={onLogin} className="hover:text-white transition-colors text-left">Sign In</button></li>
-                <li><button onClick={onGetStarted} className="hover:text-white transition-colors text-left">Create Free Account</button></li>
+                <li><button type="button" onClick={onLogin} className="hover:text-white transition-colors text-left">Sign In</button></li>
+                <li><button type="button" onClick={onGetStarted} className="hover:text-white transition-colors text-left">Create Free Account</button></li>
                 <li className="pt-2">
                   <div className="flex items-center gap-1 text-emerald-400 text-[11px]">
-                    <ShieldCheck className="w-3.5 h-3.5" />
+                    <ShieldCheck className="w-3.5 h-3.5" aria-hidden="true" />
                     <span>Cloud Firestore Secured</span>
                   </div>
                 </li>
@@ -1126,29 +1120,17 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLogin,
             <div>
               © {new Date().getFullYear()} Focus Flow (focusflow.in). All rights reserved.
             </div>
-            <div className="flex items-center gap-6">
-              <button 
-                type="button" 
-                onClick={() => onNavigate ? onNavigate('/privacy') : window.location.href = '/privacy'} 
-                className="hover:text-slate-200 transition-colors"
-              >
+            <nav aria-label="Legal and Support Links" className="flex items-center gap-6">
+              <SpaLink to="/privacy" onNavigate={onNavigate} className="hover:text-slate-200 transition-colors">
                 Privacy Policy
-              </button>
-              <button 
-                type="button" 
-                onClick={() => onNavigate ? onNavigate('/terms') : window.location.href = '/terms'} 
-                className="hover:text-slate-200 transition-colors"
-              >
+              </SpaLink>
+              <SpaLink to="/terms" onNavigate={onNavigate} className="hover:text-slate-200 transition-colors">
                 Terms of Service
-              </button>
-              <button 
-                type="button" 
-                onClick={() => onNavigate ? onNavigate('/contact') : window.location.href = '/contact'} 
-                className="hover:text-slate-200 transition-colors"
-              >
-                Contact & Support
-              </button>
-            </div>
+              </SpaLink>
+              <SpaLink to="/contact" onNavigate={onNavigate} className="hover:text-slate-200 transition-colors">
+                Contact &amp; Support
+              </SpaLink>
+            </nav>
           </div>
         </div>
       </footer>
